@@ -3,6 +3,7 @@
     <title>Fit API</title>
   </head>
   <body>
+    <button id="googlefit" style="margin-left: 25px">Google Fit</button>
     <script>
       var GoogleAuth; // Google Auth object.
       var SCOPE = 'https://www.googleapis.com/auth/fitness.activity.read';
@@ -30,9 +31,9 @@
             var user = GoogleAuth.currentUser.get();
             setSigninStatus();
             
-            if (!GoogleAuth.isSignedIn.get()) {
+            $("#googlefit").click(function() {
               GoogleAuth.signIn();
-            }
+            });
         });
       }
       
