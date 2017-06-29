@@ -1,0 +1,89 @@
+<html>
+  <head>
+    <title>Fit API</title>
+  </head>
+  <body>
+    <script>
+      var GoogleAuth; // Google Auth object.
+      var SCOPE = 'https://www.googleapis.com/auth/fitness.activity.read';
+      var discoveryUrl = 'https://www.googleapis.com/discovery/v1/apis/fitness/v1/rest';
+      var ONE_DAY_MS = 86400000;
+      
+      function handleClientLoad() {
+        // Load the API's client and auth2 modules.
+        // Call the initClient function after the modules load.
+        gapi.load('client:auth2', initClient);
+      }
+      function initClient() {
+        gapi.client.init({
+            'apiKey': 'AIzaSyDjyhJ2ou-M9kBloNlqhboxY0sifygvEas',
+            'discoveryDocs': [discoveryUrl],
+            'clientId': '171349173087-qt2sjgcpgcne752k2muf95kgtb1jvv3h.apps.googleusercontent.com',
+            'scope': SCOPE
+        }).then(function () {
+            GoogleAuth = gapi.auth2.getAuthInstance();
+
+            // Listen for sign-in state changes.
+            GoogleAuth.isSignedIn.listen(setSigninStatus);
+
+            // Handle initial sign-in state. (Determine if user is already signed in.)
+            var user = GoogleAuth.currentUser.get();
+            setSigninStatus();
+            
+            if (!GoogleAuth.isSignedIn.get()) {
+              GoogleAuth.signIn();
+            }
+        });
+      }
+      
+      function getFitnessData() {
+        var now = Date.now();
+        var lastMonth = new Date(now - ONE_DAY_MS * 30).setHours(0,0,0,0);
+        gapi.client.fitness.users.dataset.aggregate({
+          "userId": "me",
+          "aggregateBy": [{
+            "dataTypeName": "com.google.step_count.delta",
+            "dataSourceId": "derived:com.google.step_count.delta:com.google.android.gms:estimated_steps"
+          }],
+          "bucketByTime": { "durationMillis": ONE_DAY_MS },
+          "startTimeMillis": lastMonth,
+          "endTimeMillis": now
+        }).execute(function(response) {
+          console.log(response);
+          $("body").html("Google Fit data:<br><table id='steps'><thead><th>Day</th><th>Steps</th></thead><tbody></tbody></table>")
+          for (var i in response.bucket) {
+            var bucket = response.bucket[i];
+            if (bucket.dataset[0].point.length) {
+              var day = new Date(parseInt(bucket.startTimeMillis));
+              var dayStr = day.toLocaleString().slice(0,10);
+              var steps = bucket.dataset[0].point[0].value[0].intVal;
+              console.log(dayStr, steps);
+              $("#steps tbody").append("<tr><td>" + dayStr + "</td><td>" + steps + "</td></tr>");
+            }
+          }
+        });
+      }
+
+      function setSigninStatus(isSignedIn) {
+        var user = GoogleAuth.currentUser.get();
+        var profile = user.getBasicProfile();
+        var isAuthorized = user.hasGrantedScopes(SCOPE);
+        console.log(user, isAuthorized);
+        console.log('ID: ' + profile.getId());
+        console.log('Full Name: ' + profile.getName());
+        console.log('Image URL: ' + profile.getImageUrl());
+        console.log('Email: ' + profile.getEmail());
+        user.grantOfflineAccess().then(function(resp) {
+          var auth_code = resp.code;
+          console.log(auth_code);
+        });
+        getFitnessData();
+      }
+    </script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script async defer src="https://apis.google.com/js/api.js" 
+            onload="this.onload=function(){};handleClientLoad()" 
+            onreadystatechange="if (this.readyState === 'complete') this.onload()">
+    </script>
+  </body>
+</html>
