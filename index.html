@@ -66,8 +66,9 @@
 
       function setSigninStatus(isSignedIn) {
         var user = GoogleAuth.currentUser.get();
-        var profile = user.getBasicProfile();
         var isAuthorized = user.hasGrantedScopes(SCOPE);
+        if (!isAuthorized) return;
+        var profile = user.getBasicProfile();
         console.log(user, isAuthorized);
         console.log('ID: ' + profile.getId());
         console.log('Full Name: ' + profile.getName());
