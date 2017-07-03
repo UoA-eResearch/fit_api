@@ -21,7 +21,7 @@ def default_get(db):
   if not name:  
     return static_file("index.html", ".")
   p = request.urlparts
-  redirect_uri = "{}://{}".format(p.scheme, p.netloc)
+  redirect_uri = "{}://{}{}".format(p.scheme, p.netloc, p.path)
   flow = client.flow_from_clientsecrets(
     'client_secret.json',
     scope=["profile", "email", 'https://www.googleapis.com/auth/fitness.activity.read'],
@@ -36,7 +36,7 @@ def default_get(db):
     u = user_info_service.userinfo().get().execute()
     db.execute("REPLACE INTO google_fit SET username=%s, google_id=%s, full_name=%s, gender=%s, image_url=%s, email=%s, refresh_token=%s", (name, u['id'], u['name'], u['gender'], u['picture'], u['email'], creds.refresh_token))
     print("Inserted", u)
-    return get_fit_data(http_auth)
+    return dict(get_fit_data(http_auth))
 
 @app.get('/steps_for_user/<name>')
 def steps_for_user(name, db):
