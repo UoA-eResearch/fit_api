@@ -28,6 +28,8 @@ def default_get(db):
     'client_secret.json',
     scope=["profile", "email", 'https://www.googleapis.com/auth/fitness.activity.read'],
     redirect_uri=redirect_uri)
+  flow.params['access_type'] = 'offline'
+  flow.params['approval_prompt'] = 'force'
   if 'code' not in request.query:
     auth_uri = flow.step1_get_authorize_url(state=name)
     redirect(auth_uri)
