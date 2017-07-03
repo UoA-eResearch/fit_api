@@ -47,6 +47,9 @@ def steps_for_user(name, db):
   return result
 
 port = int(os.environ.get('PORT', 8080))
+prefix = os.environ.get('PREFIX', None)
+if prefix:
+  app.mount(prefix=prefix, app=app)
 
 if __name__ == "__main__":
   try:
