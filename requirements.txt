@@ -2,3 +2,4 @@ bottle
 bottle-mysql
 oauth2client
 google-api-python-client
+mysql-python
