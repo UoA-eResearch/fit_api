@@ -40,7 +40,10 @@ def default_get(db):
     u = user_info_service.userinfo().get().execute()
     db.execute("REPLACE INTO google_fit SET username=%s, google_id=%s, full_name=%s, gender=%s, image_url=%s, email=%s, refresh_token=%s", (name, u['id'], u['name'], u['gender'], u['picture'], u['email'], creds.refresh_token))
     print("Inserted", u)
-    return dict(get_fit_data(http_auth))
+    fit_data = get_fit_data(http_auth)
+    rows = db.executemany("REPLACE INTO steps SET username='{}', day=%s, steps=%s".format(name), fit_data)
+    print("{} rows affected".format(rows))
+    return dict(fit_data)
 
 @app.get('/steps_for_user/<name>')
 def steps_for_user(name, db):
