@@ -38,7 +38,7 @@ def default_get(db):
     http_auth = creds.authorize(httplib2.Http())
     user_info_service = build('oauth2', 'v2', http=http_auth)
     u = user_info_service.userinfo().get().execute()
-    db.execute("REPLACE INTO google_fit SET username=%s, google_id=%s, full_name=%s, gender=%s, image_url=%s, email=%s, refresh_token=%s", (name, u['id'], u['name'], u['gender'], u['picture'], u['email'], creds.refresh_token))
+    db.execute("REPLACE INTO google_fit SET username=%s, google_id=%s, full_name=%s, gender=%s, image_url=%s, email=%s, refresh_token=%s", (name, u['id'], u['name'], u.get('gender'), u['picture'], u['email'], creds.refresh_token))
     print("Inserted", u)
     fit_data = get_fit_data(http_auth)
     rows = db.executemany("REPLACE INTO steps SET username=%s, day=%s, steps=%s", [(name, f[0], f[1]) for f in fit_data])

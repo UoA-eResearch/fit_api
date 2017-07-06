@@ -8,6 +8,7 @@ from pprint import pprint
 from datetime import datetime, timedelta
 
 import httplib2
+import urllib2
 from apiclient.discovery import build
 from oauth2client import client
 
@@ -21,15 +22,19 @@ def get_fit_data(http_auth):
   now = int(now.strftime("%s")) * 1000
   lastMonth = int(lastMonth.strftime("%s")) * 1000
 #  print(help(fit_service.users().dataset().aggregate))
-  response = fit_service.users().dataset().aggregate(userId="me", body={
-    "aggregateBy": [{
-      "dataTypeName": "com.google.step_count.delta",
-      "dataSourceId": "derived:com.google.step_count.delta:com.google.android.gms:estimated_steps"
-    }],
-    "bucketByTime": { "durationMillis": ONE_DAY_MS },
-    "startTimeMillis": lastMonth,
-    "endTimeMillis": now
-  }).execute()
+  try:
+    response = fit_service.users().dataset().aggregate(userId="me", body={
+      "aggregateBy": [{
+        "dataTypeName": "com.google.step_count.delta",
+        "dataSourceId": "derived:com.google.step_count.delta:com.google.android.gms:estimated_steps"
+      }],
+      "bucketByTime": { "durationMillis": ONE_DAY_MS },
+      "startTimeMillis": lastMonth,
+      "endTimeMillis": now
+    }).execute()
+  except:
+    print("No steps found")
+    return {}
   days = []
   for day in response['bucket']:
     if day['dataset'][0]['point']:
