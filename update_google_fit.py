@@ -53,17 +53,16 @@ if __name__ == "__main__":
   cur = db.cursor()
   n_rows = cur.execute("SELECT * FROM google_fit")
   rows = cur.fetchall()
-  fit_data = []
   for r in rows:
     username = r['username']
     refresh_token = r['refresh_token']
     creds = client.GoogleCredentials("", client_id, client_secret, refresh_token, 0, "https://accounts.google.com/o/oauth2/token", "Python")
     http_auth = creds.authorize(httplib2.Http())
-    fit_data += get_fit_data(http_auth)
-  print(fit_data)
-  rows = cur.executemany("REPLACE INTO steps SET username='{}', day=%s, steps=%s".format(username), fit_data)
-  db.commit()
-  print("{} rows affected".format(rows))
+    fit_data = get_fit_data(http_auth)
+    print(fit_data)
+    rows = cur.executemany("REPLACE INTO steps SET username='{}', day=%s, steps=%s".format(username), fit_data)
+    db.commit()
+    print("{} rows affected".format(rows))
   cur.close()
   # disconnect from server
   db.close()
