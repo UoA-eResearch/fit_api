@@ -6,6 +6,9 @@ import requests
 import json
 from pprint import pprint
 from datetime import datetime, timedelta
+import pytz
+
+tz = pytz.timezone('US/Pacific')
 
 import httplib2
 import urllib2
@@ -16,9 +19,9 @@ ONE_DAY_MS = 86400000
 
 def get_fit_data(http_auth):
   fit_service = build('fitness', 'v1', http=http_auth)
-  now = datetime.now()
+  now = datetime.now(tz)
   lastMonth = now - timedelta(days=30)
-  lastMonth = datetime(lastMonth.year, lastMonth.month, lastMonth.day)
+  lastMonth = datetime(lastMonth.year, lastMonth.month, lastMonth.day, tzinfo=tz)
   now = int(now.strftime("%s")) * 1000
   lastMonth = int(lastMonth.strftime("%s")) * 1000
 #  print(help(fit_service.users().dataset().aggregate))
