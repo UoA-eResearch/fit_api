@@ -3,6 +3,7 @@ from bottle import *
 import bottle_mysql
 import os
 import config
+import json
 
 import httplib2
 from apiclient.discovery import build
@@ -43,7 +44,8 @@ def default_get(db):
     fit_data = get_fit_data(http_auth)
     rows = db.executemany("REPLACE INTO steps SET username=%s, day=%s, steps=%s", [(name, f[0], f[1]) for f in fit_data])
     print("{} rows affected".format(rows))
-    return dict(fit_data)
+    response.content_type = 'application/json'
+    return json.dumps(dict(fit_data), sort_keys=True)
 
 @app.get('/steps_for_user/<name>')
 def steps_for_user(name, db):
@@ -51,7 +53,8 @@ def steps_for_user(name, db):
   db.execute("SELECT day, steps FROM steps WHERE username=%s", (name,))
   result = dict([(r['day'], r['steps']) for r in db.fetchall()])
   print(result)
-  return result
+  response.content_type = 'application/json'
+  return json.dumps(result, sort_keys=True)
 
 port = int(os.environ.get('PORT', 8080))
 prefix = os.environ.get('PREFIX', None)
