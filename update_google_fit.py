@@ -19,9 +19,9 @@ ONE_DAY_MS = 86400000
 
 def get_fit_data(http_auth):
   fit_service = build('fitness', 'v1', http=http_auth)
-  now = datetime.now(tz)
+  now = tz.localize(datetime.now())
   lastMonth = now - timedelta(days=30)
-  lastMonth = datetime(lastMonth.year, lastMonth.month, lastMonth.day, tzinfo=tz)
+  lastMonth = tz.localize(datetime(lastMonth.year, lastMonth.month, lastMonth.day))
   now = int(now.strftime("%s")) * 1000
   lastMonth = int(lastMonth.strftime("%s")) * 1000
 #  print(help(fit_service.users().dataset().aggregate))
