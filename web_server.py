@@ -4,6 +4,7 @@ import bottle_mysql
 import os
 import config
 import json
+from collections import OrderedDict
 
 import httplib2
 from apiclient.discovery import build
@@ -70,6 +71,14 @@ def get_users(db):
   print(result)
   response.content_type = 'application/json'
   return json.dumps(result, sort_keys=True, indent=4)
+
+@app.get('/step_leaderboard')
+def steps_leaderboard(db):
+  db.execute("SELECT username, SUM(steps) as steps FROM steps WHERE day > date_sub(now(), INTERVAL 1 WEEK) GROUP BY username ORDER BY steps DESC LIMIT 10")
+  result = OrderedDict([(r['username'], int(r['steps'])) for r in db.fetchall()])
+  print(result)
+  response.content_type = 'application/json'
+  return json.dumps(result, indent=4)
 
 port = int(os.environ.get('PORT', 8080))
 prefix = os.environ.get('PREFIX', None)
