@@ -63,6 +63,14 @@ def steps_for_user_last_week(name, db):
   print(result)
   return result
 
+@app.get('/users')
+def get_users(db):
+  db.execute("SELECT username FROM google_fit")
+  result = [u['username'] for u in db.fetchall()]
+  print(result)
+  response.content_type = 'application/json'
+  return json.dumps(result, sort_keys=True, indent=4)
+
 port = int(os.environ.get('PORT', 8080))
 prefix = os.environ.get('PREFIX', None)
 if prefix:
