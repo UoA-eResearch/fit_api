@@ -45,7 +45,7 @@ def default_get(db):
     rows = db.executemany("REPLACE INTO steps SET username=%s, day=%s, steps=%s", [(name, f[0], f[1]) for f in fit_data])
     print("{} rows affected".format(rows))
     response.content_type = 'application/json'
-    return json.dumps(dict(fit_data), sort_keys=True)
+    return json.dumps(dict(fit_data), sort_keys=True, indent=4)
 
 @app.get('/steps_for_user/<name>')
 def steps_for_user(name, db):
@@ -54,7 +54,14 @@ def steps_for_user(name, db):
   result = dict([(r['day'], r['steps']) for r in db.fetchall()])
   print(result)
   response.content_type = 'application/json'
-  return json.dumps(result, sort_keys=True)
+  return json.dumps(result, sort_keys=True, indent=4)
+
+@app.get('/steps_for_user/last_week/<name>')
+def steps_for_user_last_week(name, db):
+  db.execute("SELECT SUM(steps) as sum FROM steps WHERE username=%s AND day > date_sub(now(), INTERVAL 1 WEEK)", (name,))
+  result = str(db.fetchone()['sum'])
+  print(result)
+  return result
 
 port = int(os.environ.get('PORT', 8080))
 prefix = os.environ.get('PREFIX', None)
