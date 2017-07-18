@@ -10,7 +10,7 @@ import httplib2
 from apiclient.discovery import build
 from oauth2client import client
 
-from update_google_fit import get_fit_data
+from update_google_fit import get_and_store_fit_data
 
 app = Bottle()
 # dbhost is optional, default is localhost
@@ -57,7 +57,14 @@ def steps_for_user(name, db):
 
 @app.get('/steps_for_user/last_week/<name>')
 def steps_for_user_last_week(name, db):
-  db.execute("SELECT SUM(steps) as sum FROM steps WHERE username=%s AND day > date_sub(now(), INTERVAL 1 WEEK)", (name,))
+  db.execute("SELECT SUM(steps) as sum FROM steps WHERE username=%s AND day >= date_sub(CURDATE(), INTERVAL 1 WEEK)", (name,))
+  result = str(db.fetchone()['sum'])
+  print(result)
+  return result
+
+@app.get('/steps_for_user/last_day/<name>')
+def steps_for_user_last_day(name, db):
+  db.execute("SELECT SUM(steps) as sum FROM steps WHERE username=%s AND day >= date_sub(CURDATE(), INTERVAL 1 DAY)", (name,))
   result = str(db.fetchone()['sum'])
   print(result)
   return result
@@ -72,7 +79,7 @@ def get_users(db):
 
 @app.get('/step_leaderboard')
 def steps_leaderboard(db):
-  db.execute("SELECT username, SUM(steps) as steps FROM steps WHERE day > date_sub(now(), INTERVAL 1 WEEK) GROUP BY username ORDER BY steps DESC LIMIT 10")
+  db.execute("SELECT username, SUM(steps) as steps FROM steps WHERE day > date_sub(CURDATE(), INTERVAL 1 WEEK) GROUP BY username ORDER BY steps DESC LIMIT 10")
   result = OrderedDict([(r['username'], int(r['steps'])) for r in db.fetchall()])
   print(result)
   response.content_type = 'application/json'
