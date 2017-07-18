@@ -42,11 +42,9 @@ def default_get(db):
     u = user_info_service.userinfo().get().execute()
     db.execute("REPLACE INTO google_fit SET username=%s, google_id=%s, full_name=%s, gender=%s, image_url=%s, email=%s, refresh_token=%s", (name, u['id'], u['name'], u.get('gender'), u['picture'], u['email'], creds.refresh_token))
     print("Inserted", u)
-    fit_data = get_fit_data(http_auth)
-    rows = db.executemany("REPLACE INTO steps SET username=%s, day=%s, steps=%s", [(name, f[0], f[1]) for f in fit_data])
-    print("{} rows affected".format(rows))
+    steps, activity = get_and_store_fit_data(http_auth, db, name)
     response.content_type = 'application/json'
-    return json.dumps(dict(fit_data), sort_keys=True, indent=4)
+    return json.dumps(dict(steps), sort_keys=True, indent=4)
 
 @app.get('/steps_for_user/<name>')
 def steps_for_user(name, db):
