@@ -12,6 +12,8 @@ from oauth2client import client
 
 from update_google_fit import get_and_store_fit_data
 
+bad_activities = "(0,3,5,109,110,111,112,117,118)"
+
 app = Bottle()
 # dbhost is optional, default is localhost
 plugin = bottle_mysql.Plugin(dbhost=config.dbhost, dbuser=config.dbuser, dbpass=config.dbpass, dbname=config.dbname)
@@ -55,6 +57,15 @@ def steps_for_user(name, db):
   response.content_type = 'application/json'
   return json.dumps(result, sort_keys=True, indent=4)
 
+@app.get('/activity_for_user/<name>')
+def steps_for_user(name, db):
+  print(name)
+  db.execute("SELECT a.day, ROUND(SUM(a.length_ms) / 1000 / 60) AS minutes FROM activity a INNER JOIN activity_types t ON a.activity_type=t.id WHERE a.username=%s AND a.activity_type NOT IN {} GROUP BY a.day".format(bad_activities), (name,))
+  result = dict([(r['day'], int(r['minutes'])) for r in db.fetchall()])
+  print(result)
+  response.content_type = 'application/json'
+  return json.dumps(result, sort_keys=True, indent=4)
+
 @app.get('/steps_for_user/last_week/<name>')
 def steps_for_user_last_week(name, db):
   db.execute("SELECT SUM(steps) as sum FROM steps WHERE username=%s AND day >= date_sub(CURDATE(), INTERVAL 1 WEEK)", (name,))
@@ -81,6 +92,14 @@ def get_users(db):
 def steps_leaderboard(db):
   db.execute("SELECT username, SUM(steps) as steps FROM steps WHERE day > date_sub(CURDATE(), INTERVAL 1 WEEK) GROUP BY username ORDER BY steps DESC LIMIT 10")
   result = OrderedDict([(r['username'], int(r['steps'])) for r in db.fetchall()])
+  print(result)
+  response.content_type = 'application/json'
+  return json.dumps(result, indent=4)
+
+@app.get('/activity_leaderboard')
+def activity_leaderboard(db):
+  db.execute("SELECT username, ROUND(SUM(a.length_ms) / 1000 / 60) AS minutes FROM activity a INNER JOIN activity_types t ON a.activity_type=t.id WHERE day > date_sub(CURDATE(), INTERVAL 1 WEEK) AND a.activity_type NOT IN {} GROUP BY username ORDER BY minutes DESC LIMIT 10".format(bad_activities))
+  result = OrderedDict([(r['username'], int(r['minutes'])) for r in db.fetchall()])
   print(result)
   response.content_type = 'application/json'
   return json.dumps(result, indent=4)
