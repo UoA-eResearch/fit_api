@@ -44,10 +44,12 @@ def get_and_store_fit_data(http_auth, cur, username):
   try:
     stepsData = get_aggregate(fit_service, lastMonth, now, STEPS_DATASOURCE)
     for day in stepsData['bucket']:
+      d = datetime.fromtimestamp(int(day['startTimeMillis'])/1000).strftime('%Y-%m-%d')
       if day['dataset'][0]['point']:
-        d = datetime.fromtimestamp(int(day['startTimeMillis'])/1000).strftime('%Y-%m-%d')
         s = day['dataset'][0]['point'][0]['value'][0]['intVal']
         steps.append([d, s])
+      else:
+        steps.append([d, 0])
     print("Steps:", steps)
   except Exception as e:
     print(e)
@@ -55,13 +57,15 @@ def get_and_store_fit_data(http_auth, cur, username):
   try:
     activityData = get_aggregate(fit_service, lastMonth, now, ACTIVITY_DATASOURCE)
     for day in activityData['bucket']:
+      d = datetime.fromtimestamp(int(day['startTimeMillis'])/1000).strftime('%Y-%m-%d')
       if day['dataset'][0]['point']:
-        d = datetime.fromtimestamp(int(day['startTimeMillis'])/1000).strftime('%Y-%m-%d')
         for a in day['dataset'][0]['point']:
           activity_type = a['value'][0]['intVal']
           length_ms = a['value'][1]['intVal']
           n_segments = a['value'][2]['intVal']
           activity.append([d, activity_type, length_ms, n_segments])
+      else:
+        activity.append([d, 4, 0, 0])
     print("Activity:", activity)
   except Exception as e:
     print(e)
