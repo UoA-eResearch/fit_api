@@ -90,7 +90,7 @@ def get_users(db):
 
 @app.get('/step_leaderboard')
 def steps_leaderboard(db):
-  db.execute("SELECT username, SUM(steps) as steps FROM steps WHERE day > date_sub(CURDATE(), INTERVAL 1 WEEK) GROUP BY username ORDER BY steps DESC LIMIT 10")
+  db.execute("SELECT username, SUM(steps) as steps FROM steps WHERE day > date_sub(CURDATE(), INTERVAL 1 WEEK) GROUP BY username ORDER BY steps DESC LIMIT 20")
   result = OrderedDict([(r['username'], int(r['steps'])) for r in db.fetchall()])
   print(result)
   response.content_type = 'application/json'
@@ -98,7 +98,7 @@ def steps_leaderboard(db):
 
 @app.get('/activity_leaderboard')
 def activity_leaderboard(db):
-  db.execute("SELECT username, ROUND(SUM(a.length_ms) / 1000 / 60) AS minutes FROM activity a INNER JOIN activity_types t ON a.activity_type=t.id WHERE day > date_sub(CURDATE(), INTERVAL 1 WEEK) AND a.activity_type NOT IN {} GROUP BY username ORDER BY minutes DESC LIMIT 10".format(bad_activities))
+  db.execute("SELECT username, ROUND(SUM(a.length_ms) / 1000 / 60) AS minutes FROM activity a INNER JOIN activity_types t ON a.activity_type=t.id WHERE day > date_sub(CURDATE(), INTERVAL 1 WEEK) AND a.activity_type NOT IN {} GROUP BY username ORDER BY minutes DESC LIMIT 20".format(bad_activities))
   result = OrderedDict([(r['username'], int(r['minutes'])) for r in db.fetchall()])
   print(result)
   response.content_type = 'application/json'
@@ -109,7 +109,7 @@ def combined_leaderboard(db):
   db.execute("""SELECT s.username, SUM(s.steps) as steps, ROUND(SUM(a.length_ms) / 1000 / 60) AS minutes
   FROM activity a INNER JOIN activity_types t ON a.activity_type=t.id INNER JOIN steps s ON s.username=a.username
   WHERE a.day > date_sub(CURDATE(), INTERVAL 1 WEEK) AND a.activity_type NOT IN {} AND s.day > date_sub(CURDATE(), INTERVAL 1 WEEK)
-  GROUP BY s.username ORDER BY steps DESC LIMIT 10""".format(bad_activities))
+  GROUP BY s.username ORDER BY steps DESC LIMIT 20""".format(bad_activities))
   result = OrderedDict([(r['username'], {"steps": int(r['steps']), "active_minutes": int(r['minutes']}) for r in db.fetchall()])
   print(result)
   response.content_type = 'application/json'
