@@ -58,10 +58,19 @@ def steps_for_user(name, db):
   return json.dumps(result, sort_keys=True, indent=4)
 
 @app.get('/activity_for_user/<name>')
-def steps_for_user(name, db):
+def activity_for_user(name, db):
   print(name)
   db.execute("SELECT a.day, ROUND(SUM(a.length_ms) / 1000 / 60) AS minutes FROM activity a INNER JOIN activity_types t ON a.activity_type=t.id WHERE a.username=%s AND a.activity_type NOT IN {} GROUP BY a.day".format(bad_activities), (name,))
   result = dict([(r['day'], int(r['minutes'])) for r in db.fetchall()])
+  print(result)
+  response.content_type = 'application/json'
+  return json.dumps(result, sort_keys=True, indent=4)
+
+@app.get('/activity_for_user_details/<name>')
+def activity_for_user_details(name, db):
+  print(name)
+  db.execute("SELECT a.day, ROUND(a.length_ms / 1000 / 60) AS minutes, t.name as activity_type FROM activity a INNER JOIN activity_types t ON a.activity_type=t.id WHERE a.username=%s AND a.activity_type NOT IN {}".format(bad_activities), (name,))
+  result = dict([(r['day'], {"minutes": int(r['minutes']), "activity_type": r['activity_type']}) for r in db.fetchall()])
   print(result)
   response.content_type = 'application/json'
   return json.dumps(result, sort_keys=True, indent=4)
