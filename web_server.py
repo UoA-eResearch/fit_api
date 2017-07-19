@@ -110,7 +110,9 @@ def combined_leaderboard(db):
   FROM activity a INNER JOIN activity_types t ON a.activity_type=t.id INNER JOIN steps s ON s.username=a.username
   WHERE a.day > date_sub(CURDATE(), INTERVAL 1 WEEK) AND a.activity_type NOT IN {} AND s.day > date_sub(CURDATE(), INTERVAL 1 WEEK)
   GROUP BY s.username ORDER BY steps DESC LIMIT 20""".format(bad_activities))
-  result = OrderedDict([(r['username'], {"steps": int(r['steps']), "active_minutes": int(r['minutes'])}) for r in db.fetchall()])
+  result = []
+  for r in db.fetchall():
+    result += [r['username'], int(r['steps']), int(r['minutes'])]
   print(result)
   response.content_type = 'application/json'
   return json.dumps(result, indent=4)
