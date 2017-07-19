@@ -106,10 +106,24 @@ def activity_leaderboard(db):
 
 @app.get('/combined_leaderboard')
 def combined_leaderboard(db):
-  db.execute("""SELECT s.username, SUM(s.steps) as steps, ROUND(SUM(a.length_ms) / 1000 / 60) AS minutes
-  FROM activity a INNER JOIN activity_types t ON a.activity_type=t.id INNER JOIN steps s ON s.username=a.username
-  WHERE a.day > date_sub(CURDATE(), INTERVAL 1 WEEK) AND a.activity_type NOT IN {} AND s.day > date_sub(CURDATE(), INTERVAL 1 WEEK)
-  GROUP BY s.username ORDER BY steps DESC LIMIT 20""".format(bad_activities))
+  db.execute("""SELECT s.username, s.steps, m.minutes
+FROM (
+  SELECT username, SUM( steps ) AS steps
+  FROM steps
+  WHERE DAY > DATE_SUB( CURDATE( ) , INTERVAL 1 WEEK )
+  GROUP BY username
+) AS s
+INNER JOIN (
+  SELECT username, ROUND( SUM( a.length_ms ) /1000 /60 ) AS minutes
+  FROM activity a
+  INNER JOIN activity_types t ON a.activity_type = t.id
+  WHERE a.day > DATE_SUB( CURDATE( ) , INTERVAL 1 WEEK )
+  AND a.activity_type NOT
+  IN {}
+  GROUP BY a.username
+) AS m ON s.username = m.username
+ORDER BY s.steps DESC
+LIMIT 20""".format(bad_activities))
   result = []
   for r in db.fetchall():
     result += [r['username'], int(r['steps']), int(r['minutes'])]
