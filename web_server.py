@@ -155,6 +155,12 @@ LIMIT 20""".format(bad_activities))
   response.content_type = 'application/json'
   return json.dumps(result, indent=4)
 
+@app.get('/set_goal/<name>/<goal>')
+def set_goal(name, goal, db):
+  require_key()
+  db.execute("REPLACE INTO activity_goals SET username=%s, minutes=%s", (name, goal))
+  return "Goal set"
+
 port = int(os.environ.get('PORT', 8080))
 prefix = os.environ.get('PREFIX', None)
 if prefix:
