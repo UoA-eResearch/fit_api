@@ -15,6 +15,7 @@ from update_google_fit import get_and_store_fit_data
 bad_activities = "(0,3,5,109,110,111,112,117,118)"
 
 app = Bottle()
+application = app
 # dbhost is optional, default is localhost
 plugin = bottle_mysql.Plugin(dbhost=config.dbhost, dbuser=config.dbuser, dbpass=config.dbpass, dbname=config.dbname)
 app.install(plugin)
