@@ -94,7 +94,10 @@ if __name__ == "__main__":
     refresh_token = r['refresh_token']
     creds = client.GoogleCredentials("", client_id, client_secret, refresh_token, 0, "https://accounts.google.com/o/oauth2/token", "Python")
     http_auth = creds.authorize(httplib2.Http())
-    steps, activity = get_and_store_fit_data(http_auth, cur, username)
+    try:
+      steps, activity = get_and_store_fit_data(http_auth, cur, username)
+    except Exception as e:
+      print("Unable to get fit data for {}! {}".format(username, e))
     db.commit()
   cur.close()
   # disconnect from server
