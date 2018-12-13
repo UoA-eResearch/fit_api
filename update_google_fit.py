@@ -85,7 +85,7 @@ if __name__ == "__main__":
     client_id = client_secret_json['web']['client_id']
     client_secret = client_secret_json['web']['client_secret']
   
-  db = MySQLdb.connect(host=config.dbhost, user=config.dbuser, passwd=config.dbpass, db=config.dbname, cursorclass=MySQLdb.cursors.DictCursor)
+  db = MySQLdb.connect(host=config.dbhost, port=config.dbport, user=config.dbuser, passwd=config.dbpass, db=config.dbname, cursorclass=MySQLdb.cursors.DictCursor)
   cur = db.cursor()
   n_rows = cur.execute("SELECT * FROM google_fit")
   rows = cur.fetchall()

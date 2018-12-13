@@ -2,4 +2,5 @@ dbhost="YOUR_DB_HOST"
 dbuser="YOUR_DB_USER"
 dbpass="YOUR_DB_PASSWORD"
 dbname="YOUR_DB_NAME"
+dbport=3306
 API_KEY="secret"

@@ -17,7 +17,7 @@ bad_activities = "(0,3,5,109,110,111,112,117,118)"
 app = Bottle()
 application = app
 # dbhost is optional, default is localhost
-plugin = bottle_mysql.Plugin(dbhost=config.dbhost, dbuser=config.dbuser, dbpass=config.dbpass, dbname=config.dbname)
+plugin = bottle_mysql.Plugin(dbhost=config.dbhost, dbport=config.dbport, dbuser=config.dbuser, dbpass=config.dbpass, dbname=config.dbname)
 app.install(plugin)
 
 def require_key():
