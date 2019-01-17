@@ -37,7 +37,7 @@ def default_get(db):
     scope=["profile", "email", 'https://www.googleapis.com/auth/fitness.activity.read'],
     redirect_uri=redirect_uri)
   flow.params['access_type'] = 'offline'
-  flow.params['approval_prompt'] = 'force'
+  flow.params['prompt'] = 'consent'
   if 'code' not in request.query:
     require_key()
     if not name:
