@@ -11,7 +11,6 @@ import pytz
 tz = pytz.timezone('US/Pacific')
 
 import httplib2
-import urllib2
 from apiclient.discovery import build
 from oauth2client import client
 
