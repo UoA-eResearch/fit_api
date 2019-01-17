@@ -15,6 +15,8 @@ Copy config.py.example to config.py, replacing with your database credentials
 
 Download your OAuth 2.0 client ID JSON file from https://console.developers.google.com/apis/credentials. Also configure this with the redirect URIs you will be using  
 
+`sudo mysql < structure` to create the database and tables
+
 ## Running
 
 `python main.py` for Python2 or `python3 main.py` for Python3
