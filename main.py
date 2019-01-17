@@ -7,7 +7,7 @@ import json
 from collections import OrderedDict
 
 import httplib2
-from apiclient.discovery import build
+from googleapiclient.discovery import build
 from oauth2client import client
 
 from update_google_fit import get_and_store_fit_data
