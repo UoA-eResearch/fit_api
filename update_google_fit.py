@@ -11,7 +11,7 @@ import pytz
 tz = pytz.timezone('US/Pacific')
 
 import httplib2
-from apiclient.discovery import build
+from googleapiclient.discovery import build
 from oauth2client import client
 
 ONE_DAY_MS = 86400000
