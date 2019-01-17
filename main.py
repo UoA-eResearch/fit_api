@@ -174,5 +174,5 @@ if __name__ == "__main__":
     except ImportError:
       app.run(host='0.0.0.0', port=port, debug=True)
   except Exception as e:
-    logger.error(e)
+    print("error:", e)
     sys.stdin.readline()
