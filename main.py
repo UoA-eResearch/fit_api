@@ -30,8 +30,6 @@ def default_get(db):
   name = request.query.get('state', '')
   p = request.urlparts
   redirect_uri = "{}://{}{}".format(p.scheme, p.netloc, p.path)
-  if p.netloc == "web.ceres.auckland.ac.nz":
-    redirect_uri = "https://web.ceres.auckland.ac.nz/fit"
   flow = client.flow_from_clientsecrets(
     'client_secret.json',
     scope=["profile", "email", 'https://www.googleapis.com/auth/fitness.activity.read'],
