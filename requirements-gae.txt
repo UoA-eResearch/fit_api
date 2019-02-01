@@ -1,3 +1,5 @@
 mysqlclient
 google-cloud-bigquery
 google-python-cloud-debugger
+google-cloud-datastore
+grpcio
