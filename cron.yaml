@@ -3,3 +3,4 @@ cron:
   url: /v1/insert_daily_fitness?users=user@gmail.com
   schedule: every day 01:00
   timezone: America/Vancouver
+#  target: dev
