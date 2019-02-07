@@ -1,11 +1,39 @@
+<!DOCTYPE html>
 <html>
 <head>
     <title>Fit API</title>
+    <style>
+        div.default {
+            line-height: normal;
+            font-size: 30px;
+        }
+
+        input {
+            font-size: 20px;
+        }
+
+        select {
+            font-size: 25px;
+
+        }
+    </style>
 </head>
+<meta charset="utf-8">
 <body>
-<form action="./v1/auth" method="post">
-    API key:<br>
-    <input type="text" name="apikey"><br>
+<form action="./v1/auth" method="post" accept-charset="UTF-8">
+    <div class="default">
+        API key: <input type="text" name="apikey">
+        <br>
+        <br>
+        Preferred Timezone: <select name="timezone">
+        <option value="US/Central">US/Central</option>
+        <option value="US/Pacific">US/Pacific</option>
+        <option value="US/Eastern">US/Eastern</option>
+    </select>
+    </div>
+    <br>
+    <br>
+    <br>
     <input type="submit" value="post to ./v1/auth">
 </form>
 </body>

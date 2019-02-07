@@ -36,7 +36,7 @@ def get_and_store_fit_data(http_auth, cur, username, past_n_days=30):
         for day in stepsData['bucket']:
             # store local date in the database
             d = datetime.fromtimestamp(int(day['startTimeMillis']) / 1000,
-                                       tz=pytz.timezone(backend.LOCAL_TIMEZONE)).strftime(backend.DATE_FORMAT)
+                                       tz=pytz.timezone(backend.DEFAULT_TIMEZONE)).strftime(backend.DATE_FORMAT)
             if day['dataset'][0]['point']:
                 s = day['dataset'][0]['point'][0]['value'][0]['intVal']
                 steps.append([d, s])
@@ -51,7 +51,7 @@ def get_and_store_fit_data(http_auth, cur, username, past_n_days=30):
         for day in activityData['bucket']:
             # store local date in the database
             d = datetime.fromtimestamp(int(day['startTimeMillis']) / 1000,
-                                       tz=pytz.timezone(backend.LOCAL_TIMEZONE)).strftime(backend.DATE_FORMAT)
+                                       tz=pytz.timezone(backend.DEFAULT_TIMEZONE)).strftime(backend.DATE_FORMAT)
             if day['dataset'][0]['point']:
                 for a in day['dataset'][0]['point']:
                     activity_type = a['value'][0]['intVal']

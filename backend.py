@@ -15,7 +15,6 @@ STEPS_DATASOURCE = "derived:com.google.step_count.delta:com.google.android.gms:e
 ACTIVITY_DATASOURCE = "derived:com.google.activity.segment:com.google.android.gms:merge_activity_segments"
 HEART_RATE_DATASOURCE = 'derived:com.google.heart_rate.bpm:com.google.android.gms:merge_heart_rate_bpm'
 epoch0 = datetime(1970, 1, 1, tzinfo=pytz.utc)
-LOCAL_TIMEZONE = 'US/Pacific'
 
 # init environment variables and configurations
 if 'CLIENT_SECRET' in os.environ:
@@ -30,7 +29,7 @@ else:
 config = ConfigParser()
 config.read(APP_CONFIG_FILENAME)
 API_key = config.get('app_config', 'API_KEY')
-
+DEFAULT_TIMEZONE = config.get('app_config', 'default_timezone')
 GCP_project = config.get('app_config', 'project')
 GCP_dataset = config.get('bigquery_config', 'dataset')
 GCP_table_heartrate = config.get('bigquery_config', 'table_heartrate')
@@ -43,9 +42,20 @@ def current_milli_time():
     return int(round(time.time() * 1000))
 
 
-def get_daily_steps(http_auth, start_year, start_month, start_day, end_time_millis=current_milli_time()):
+def get_daily_steps(http_auth, start_year, start_month, start_day, end_time_millis=current_milli_time(),
+                    local_timezone=DEFAULT_TIMEZONE):
+    """
+    Get user's daily step related data
+    :param http_auth: username authenticated HTTP client to call Google API
+    :param start_year: start getting step data from local date's year
+    :param start_month: start getting step data from local date's month
+    :param start_day: start getting step data from local date's day
+    :param end_time_millis: getting step data up to the end datetime in milliseconds Unix Epoch time
+    :param local_timezone: timezone such as US/Pacific, one of the pytz.all_timezones
+    :return: dict of daily steps and data source ID
+    """
     # calculate the timestamp in local time to query Google fitness API
-    local_0_hour = pytz.timezone(LOCAL_TIMEZONE).localize(datetime(start_year, start_month, start_day))
+    local_0_hour = pytz.timezone(local_timezone).localize(datetime(start_year, start_month, start_day))
     start_time_millis = int((local_0_hour - epoch0).total_seconds() * 1000)
     fit_service = build('fitness', 'v1', http=http_auth)
     steps = {}
@@ -54,7 +64,7 @@ def get_daily_steps(http_auth, start_year, start_month, start_day, end_time_mill
     for daily_step_data in steps_data['bucket']:
         # use local date as the key
         local_date = datetime.fromtimestamp(int(daily_step_data['startTimeMillis']) / 1000,
-                                            tz=pytz.timezone(LOCAL_TIMEZONE))
+                                            tz=pytz.timezone(local_timezone))
         local_date_str = local_date.strftime(DATE_FORMAT)
 
         data_point = daily_step_data['dataset'][0]['point']
@@ -66,9 +76,20 @@ def get_daily_steps(http_auth, start_year, start_month, start_day, end_time_mill
     return steps
 
 
-def get_activities(http_auth, start_year, start_month, start_day, end_time_millis=current_milli_time()):
+def get_daily_activities(http_auth, start_year, start_month, start_day, end_time_millis=current_milli_time(),
+                         local_timezone=DEFAULT_TIMEZONE):
+    """
+    get user's activities from Google fitness API
+    :param http_auth: username authenticated HTTP client to call Google API
+    :param start_year: start getting activity data from local date's year
+    :param start_month: start getting activity data from local date's month
+    :param start_day: start getting activity data from local date's day
+    :param end_time_millis: getting activity data up to the end datetime in milliseconds Unix Epoch time
+    :param local_timezone: timezone such as US/Pacific, one of the pytz.all_timezones
+    :return: dict of daily activities and its data sets
+    """
     # calculate the timestamp in local time to query Google fitness API
-    local_0_hour = pytz.timezone(LOCAL_TIMEZONE).localize(datetime(start_year, start_month, start_day))
+    local_0_hour = pytz.timezone(local_timezone).localize(datetime(start_year, start_month, start_day))
     start_time_millis = int((local_0_hour - epoch0).total_seconds() * 1000)
     fit_service = build('fitness', 'v1', http=http_auth)
     activities = {}
@@ -77,7 +98,7 @@ def get_activities(http_auth, start_year, start_month, start_day, end_time_milli
     for daily_activity in activityData['bucket']:
         # use local date as the key
         local_date = datetime.fromtimestamp(int(daily_activity['startTimeMillis']) / 1000,
-                                            tz=pytz.timezone(LOCAL_TIMEZONE))
+                                            tz=pytz.timezone(local_timezone))
         local_date_str = local_date.strftime(DATE_FORMAT)
         if local_date_str not in activities:
             activities[local_date_str] = {
@@ -113,8 +134,13 @@ def get_activities(http_auth, start_year, start_month, start_day, end_time_milli
     return activities
 
 
-# calculate the 0 hour datetime n days ago
-def calc_n_days_ago(past_n_days, local_timezone=pytz.timezone(LOCAL_TIMEZONE)):
+def calc_n_days_ago(past_n_days, local_timezone=pytz.timezone(DEFAULT_TIMEZONE)):
+    """
+    calculate the 0 hour datetime n days ago in milliseconds Unix Epoch time
+    :param past_n_days: calculated with timedelta
+    :param local_timezone: timezone such as US/Pacific, one of the pytz.all_timezones
+    :return: milliseconds Unix Epoch time n days ago
+    """
     now_utc = datetime.now(pytz.timezone('UTC'))
     now_local = now_utc.astimezone(local_timezone)
     n_days_ago_local = now_local - timedelta(days=past_n_days)
@@ -125,15 +151,22 @@ def calc_n_days_ago(past_n_days, local_timezone=pytz.timezone(LOCAL_TIMEZONE)):
     return int(n_days_ago_local_0_hour_millis)
 
 
-# insert heart rate bmp rows except existing_rows of recordedTimeNanos
 def get_and_insert_heart_rate(http_auth, username, start_year, start_month, start_day,
-                              end_time_millis=current_milli_time()):
+                              end_time_millis=current_milli_time(), local_timezone=DEFAULT_TIMEZONE):
+    """
+    insert heart rate bmp rows except existing_rows of recordedTimeNanos
+    :param http_auth: username authenticated HTTP client to call Google API
+    :param username: user's Gmail
+    :param start_year: start getting heart rate data from local date's year
+    :param start_month: start getting heart rate data from local date's month
+    :param start_day: start getting heart rate data from local date's day
+    :param end_time_millis: getting heart rate data up to the end datetime in milliseconds Unix Epoch time
+    :param local_timezone: timezone such as US/Pacific, one of the pytz.all_timezones
+    :return: heart rate insert log, data set, no heart rate dates, count of inserted rows
+    """
     # calculate the timestamp in local time to query Google fitness API
-    local_0_hour = pytz.timezone(LOCAL_TIMEZONE).localize(datetime(start_year, start_month, start_day))
+    local_0_hour = pytz.timezone(local_timezone).localize(datetime(start_year, start_month, start_day))
     start_time_millis = int((local_0_hour - epoch0).total_seconds() * 1000)
-    now_millis = current_milli_time()
-    # today's local date
-    local_date_today = datetime.fromtimestamp(now_millis / 1000, tz=pytz.timezone(LOCAL_TIMEZONE)).strftime(DATE_FORMAT)
     fit_service = build('fitness', 'v1', http=http_auth)
 
     # method return values
@@ -145,14 +178,15 @@ def get_and_insert_heart_rate(http_auth, username, start_year, start_month, star
     bigquery_client = bigquery.Client()
     inserted_count = 0
     rows_to_insert = []
-    query = "SELECT recordedLocalDate, COUNT(bpm) AS bpm_count FROM `{}.{}.{}` WHERE username = '{}' GROUP BY recordedLocalDate".format(
-        GCP_project, GCP_dataset, GCP_table_heartrate, username)
+    query = "SELECT recordedTimeNanos FROM `{}.{}.{}` WHERE username = '{}' AND recordedLocalDate >= '{}'".format(
+        GCP_project, GCP_dataset, GCP_table_heartrate, username, "{}-{}-{}".format(start_year, start_month, start_day))
     query_job = bigquery_client.query(query)
-    local_date_rows = list(query_job.result())
+    existing_rows = list(query_job.result())
+    existing_rows = [row['recordedTimeNanos'] for row in existing_rows]
 
     for daily_item in heartrate_data['bucket']:
         incoming_day_localized = datetime.fromtimestamp(int(daily_item['startTimeMillis']) / 1000,
-                                                        tz=pytz.timezone(LOCAL_TIMEZONE))
+                                                        tz=pytz.timezone(local_timezone))
         incoming_day_localized_str = incoming_day_localized.strftime(DATE_FORMAT)
         data_point = daily_item['dataset'][0]['point']
         if data_point:
@@ -171,24 +205,15 @@ def get_and_insert_heart_rate(http_auth, username, start_year, start_month, star
             no_heart_rate_log += '"{}", '.format(incoming_day_localized_str)
             continue
 
-        # insert heart rate daily entries to BigQuery tables
-        if incoming_day_localized_str != local_date_today:
-            # if any of the daily entries exists on a specific date, assume all entries are in the table and skip
-            if [row for row in local_date_rows if row['recordedLocalDate'] == incoming_day_localized.date()]:
-                continue
-            else:
-                # the daily records don't exist in the table, insert them from Google Fitness API
-                rows_to_insert.extend(prep_insert_rows(incoming_day_localized_str, heart_dataset, username))
-
-        else:
-            # if the date is the local datetime's current date, only insert the nonexistent rows
-            query = "SELECT recordedTimeNanos from `{}.{}.{}` WHERE recordedLocalDate = '{}' AND username = '{}' ".format(
-                GCP_project, GCP_dataset, GCP_table_heartrate, incoming_day_localized_str, username)
-            query_job = bigquery_client.query(query)
-            existing_rows = list(query_job.result())
-            existing_rows_endTimeNanos = [row['recordedTimeNanos'] for row in existing_rows]
-            rows_to_insert.extend(
-                prep_insert_rows(incoming_day_localized_str, heart_dataset, username, existing_rows_endTimeNanos))
+        # insert heart rate daily entries to BigQuery tables except existing rows
+        if heart_dataset['point']:
+            data_point_list = heart_dataset['point']
+            for bpm_data_point in data_point_list:
+                if int(bpm_data_point['endTimeNanos']) not in existing_rows:
+                    # username, recordedTimeNanos, recordedLocalDate, bpm
+                    rows_to_insert.append(
+                        (username, int(bpm_data_point['endTimeNanos']), incoming_day_localized_str,
+                         int(bpm_data_point['value'][0]['fpVal'])))
 
     if rows_to_insert:
         dataset_ref = bigquery_client.dataset(GCP_dataset)
@@ -207,7 +232,14 @@ def get_and_insert_heart_rate(http_auth, username, start_year, start_month, star
     }
 
 
-def insert_steps(username, steps):
+def insert_steps(username, steps, local_timezone=DEFAULT_TIMEZONE):
+    """
+    insert step counts to BigQuery except local date of today's steps per local_timezone
+    :param username: user's Gmail
+    :param steps: dictionary of local date as key, value is another dict of steps, originDataSourceId
+    :param local_timezone: timezone such as US/Pacific, one of the pytz.all_timezones
+    :return: inserted row count
+    """
     bigquery_client = bigquery.Client()
     dataset_ref = bigquery_client.dataset(GCP_dataset)
     table_steps_ref = dataset_ref.table(GCP_table_steps)
@@ -220,7 +252,7 @@ def insert_steps(username, steps):
     existing_step_dates = [row['recordedLocalDate'] for row in query_job.result()]
     rows_to_insert = []
     now_utc = datetime.now(pytz.timezone('UTC'))
-    now_local = now_utc.astimezone(pytz.timezone(LOCAL_TIMEZONE))
+    now_local = now_utc.astimezone(pytz.timezone(local_timezone))
 
     for localDate, value in steps.iteritems():
         incoming_activity_date = datetime.strptime(localDate, DATE_FORMAT).date()
@@ -244,7 +276,14 @@ def insert_steps(username, steps):
     return len(rows_to_insert)
 
 
-def insert_activities(username, activities):
+def insert_activities(username, activities, local_timezone=DEFAULT_TIMEZONE):
+    """
+    insert activities to BigQuery except local date of today's activities per local_timezone
+    :param username: user's Gmail
+    :param activities: return from get_activities
+    :param local_timezone: timezone such as US/Pacific, one of the pytz.all_timezones
+    :return: inserted counts for 2 tables
+    """
     bigquery_client = bigquery.Client()
     dataset_ref = bigquery_client.dataset(GCP_dataset)
     table_activities_ref = dataset_ref.table(GCP_table_activities)
@@ -260,7 +299,7 @@ def insert_activities(username, activities):
     activity_rows_to_insert = []
     segment_rows_to_insert = []
     now_utc = datetime.now(pytz.timezone('UTC'))
-    now_local = now_utc.astimezone(pytz.timezone(LOCAL_TIMEZONE))
+    now_local = now_utc.astimezone(pytz.timezone(local_timezone))
 
     for localDate, value in activities.iteritems():
         incoming_activity_date = datetime.strptime(localDate, DATE_FORMAT).date()
@@ -298,15 +337,42 @@ def insert_activities(username, activities):
             'inserted_segment_count': len(segment_rows_to_insert)}
 
 
-def prep_insert_rows(day, heart_dataset, username, existing_rows=[]):
-    rows_to_insert = []
+class UserDataFlow:
+    def __init__(self, username, http_auth, start_year, start_month, start_day, end_time_millis, local_timezone):
+        self.username = username
+        self.http_auth = http_auth
+        self.start_year = start_year
+        self.start_month = start_month
+        self.start_day = start_day
+        self.end_time_millis = end_time_millis
+        self.local_timezone = local_timezone
 
-    if heart_dataset['point']:
-        data_point_list = heart_dataset['point']
-        for bpm_data_point in data_point_list:
-            if int(bpm_data_point['endTimeNanos']) not in existing_rows:
-                # SELECT  username, recordedTimeNanos, recordedLocalDate, bpm FROM `next19fit.fitness.heartrate` LIMIT 1000
-                rows_to_insert.append(
-                    (username, int(bpm_data_point['endTimeNanos']), day, int(bpm_data_point['value'][0]['fpVal'])))
+        def get_steps(self):
+            self.steps = get_daily_steps(self.http_auth, self.start_year, self.start_month, self.start_day,
+                                         self.end_time_millis, self.local_timezone)
+            return self.steps
 
-    return rows_to_insert
+        def post_steps(self):
+            if self.steps is not None:
+                self.insert_steps_result = insert_steps(self.username, self.steps, self.local_timezone)
+                return self.insert_steps_result
+            else:
+                raise RuntimeError('no .steps to insert to BigQuery')
+
+        def get_and_post_heart_rate(self):
+            self.insert_heart_rate_result = get_and_insert_heart_rate(self.http_auth, self.username, self.start_year,
+                                                                      self.start_month, self.start_day,
+                                                                      self.end_time_millis, self.local_timezone)
+            return self.insert_heart_rate_result
+
+        def get_activities(self):
+            self.activities = get_daily_activities(self.http_auth, self.start_year, self.start_month, self.start_day,
+                                                   self.end_time_millis, self.local_timezone)
+            return self.activities
+
+        def post_activities(self):
+            if self.activities is not None:
+                self.insert_activities_result = insert_activities(self.username, self.activities, self.local_timezone)
+                return self.insert_activities_result
+            else:
+                raise RuntimeError('no .activities to insert to BigQuery')
