@@ -6,6 +6,7 @@ import bottle_mysql
 import googleapiclient.errors
 import httplib2
 import pytz
+from threading import Thread
 from bottle import *
 from google.cloud import datastore
 from google.cloud import error_reporting
@@ -29,12 +30,12 @@ plugin = bottle_mysql.Plugin(dbhost=backend.config.get('database_config', 'dbhos
                              dbname=backend.config.get('database_config', 'dbname'))
 app.install(plugin)
 
-# Google Cloud Stackdriver Debugger
+# Google Cloud Stackdriver Debugger https://cloud.google.com/debugger/docs/setup/python
 try:
-    print("running code: import googleclouddebugger")
     import googleclouddebugger
 
     googleclouddebugger.enable()
+    print("Google Cloud Debugger enabled")
 except ImportError as e:
     print >> sys.stderr, "Failed to load Google Cloud Debugger for Python 2: ".format(e)
 
@@ -112,7 +113,7 @@ def oauth2callback(db):
         (u['email'], u['id'], u['name'], u.get('gender'), u['picture'], u['email'], creds.refresh_token))
 
     # insert to Cloud Datastore
-    entity = datastore.Entity(key=ds.key('credentials', u['email']))
+    entity = datastore.Entity(key=ds.key(backend.DATASTORE_KIND, u['email']))
     now = datetime.utcnow()
     entity.update({
         'refresh_token': creds.refresh_token,
@@ -167,12 +168,10 @@ def get_steps(username):
         try:
             # end_time_millis in headers data is optional
             if end_time_millis is None:
-                steps = backend.get_daily_steps(http_auth, start_date['year'], start_date['month'], start_date['day'],
-                                                local_timezone=timezone)
-            else:
-                steps = backend.get_daily_steps(http_auth,
-                                                start_date['year'], start_date['month'], start_date['day'],
-                                                end_time_millis, local_timezone=timezone)
+                end_time_millis = backend.current_milli_time()
+
+            steps = backend.get_daily_steps(http_auth, start_date['year'], start_date['month'], start_date['day'],
+                                            end_time_millis, local_timezone=timezone)
             response.content_type = 'application/json'
             return steps
         except client.HttpAccessTokenRefreshError as err:
@@ -307,13 +306,10 @@ def get_user_activities(username):
         try:
             # end_time_millis in headers data is optional
             if end_time_millis is None:
-                activities = backend.get_daily_activities(http_auth, start_date['year'], start_date['month'],
-                                                          start_date['day'], local_timezone=timezone)
-            else:
-                activities = backend.get_daily_activities(http_auth,
-                                                          start_date['year'], start_date['month'], start_date['day'],
-                                                          end_time_millis, local_timezone=timezone)
+                end_time_millis = backend.current_milli_time()
 
+            activities = backend.get_daily_activities(http_auth, start_date['year'], start_date['month'],
+                                                      start_date['day'], end_time_millis, local_timezone=timezone)
             response.content_type = 'application/json'
             return activities
         except client.HttpAccessTokenRefreshError as err:
@@ -505,8 +501,19 @@ def get_google_http_auth_n_user_timezone(username):
 
 
 @app.post('/v1/insert_daily_fitness')
-def ondemand_insert_daily_fitness_data():
-    return insert_daily_fitness_data_impl()
+def insert_daily_fitness_data_ondemand():
+    """
+    The query string needs to contain a list of users in the form of ?users=hil@gmail.com,estes@gmail.com,paes@gmail.com
+    :return:
+    """
+    users_param = 'users'
+    if users_param not in request.query:
+        return HTTPError(httplib.BAD_REQUEST,
+                         '{} does not exist in query string parameters; specify ?{}=user1@gmail.com,user2@company.com'.format(
+                             users_param))
+    usernames = request.query[users_param].split(',')
+
+    return insert_daily_fitness_data_impl(usernames)
 
 
 # callable only from App Engine cron jobs
@@ -517,113 +524,134 @@ def insert_daily_fitness_data():
     if app_engine_cron_header not in request.headers:
         return HTTPError(httplib.UNAUTHORIZED,
                          'Endpoint can only be invoked from Google App Engine cron jobs per https://cloud.google.com/appengine/docs/flexible/python/scheduling-jobs-with-cron-yaml')
-    return insert_daily_fitness_data_impl()
+
+    ds = datastore.Client()
+    query = ds.query(kind=backend.DATASTORE_KIND)
+    query.keys_only()
+    usernames = list(query.fetch())
+    usernames = [u.key.id_or_name for u in usernames]
+
+    return insert_daily_fitness_data_impl(usernames)
 
 
-def insert_daily_fitness_data_impl():
-    users_param = 'users'
-    bucket_name = 'next19fitness'
-    if users_param not in request.query:
-        return HTTPError(httplib.BAD_REQUEST,
-                         '{} does not exist in query string parameters; specify ?{}=user1@gmail.com,user2@company.com'.format(
-                             users_param))
-    usernames = request.query[users_param].split(',')
-    # key is username[op]
-    # if value >= 0, retry down to value -1 or set value to -2 for non-recoverable errors
-    # if value is None, op has succeeded
+def insert_daily_fitness_data_impl(usernames, bucket_name=backend.DEFAULT_BUCKET):
+    """
+    Call Google Fitness API for users in the Cloud Datastore credentials kind, save the responses in Cloud Storage,
+    insert the fitness data to Cloud BigQuery.
+    key is retry[username][category]['countdown']
+    if value >= 0, retry down to value -1 or set value to -2 for non-recoverable errors
+    if value is None, op has succeeded
+    :param usernames: a list of usernames to call Google Fitness API with
+    :param bucket_name: save responses from Google Fitness API to a Google Cloud Storage bucket
+    :return: The results of getting from Google Fitness API and inserting to Cloud BigQuery
+    """
     retry = {}
-    error_reporting_client = error_reporting.Client()
-    http_context = error_reporting.HTTPContext(method='GET', url='/v1/insert_daily_fitness', user_agent='cron job')
-    storage_client = storage.Client()
-    bucket = storage_client.get_bucket(bucket_name)
+    threads = []
 
     for username in usernames:
-        http_auth, timezone = get_google_http_auth_n_user_timezone(username)
-        # get today's local date - 1 day
-        yesterday_local = datetime.now(pytz.timezone(timezone)) - timedelta(days=1)
-        yesterday_local_str = yesterday_local.strftime(backend.DATE_FORMAT)
-        retry[username] = {}
-        categories = {'heartrate', 'activities', 'steps'}
+        t = Thread(target=insert_daily_fitness_data_thread, args=(bucket_name, retry, username))
+        threads.append(t)
+        t.start()
 
-        for category in categories:
-            retry[username][category] = {}
-            retry[username][category]['countdown'] = 1
-            retry[username][category]['gs://'] = []
-            gs_path_get = '{}/{}/{}.json'.format(username, yesterday_local_str, category)
-            gs_path_insert = '{}/{}/{}_inserted_count.json'.format(username, yesterday_local_str, category)
-            get_result = None
-            insert_result = None
-            while retry[username][category]['countdown'] >= 0:
-                try:
-                    if category == 'heartrate':
-                        # get and insert heart rate data
-                        insert_result = backend.get_and_insert_heart_rate(http_auth, username,
-                                                                          yesterday_local.year,
-                                                                          yesterday_local.month,
-                                                                          yesterday_local.day,
-                                                                          local_timezone=timezone)
-                        get_result = insert_result['heart_datasets']
-                    elif category == 'activities':
-                        # get and insert activities data
-                        get_result = backend.get_daily_activities(http_auth, yesterday_local.year, yesterday_local.month,
-                                                                  yesterday_local.day, local_timezone=timezone)
-                        insert_result = backend.insert_activities(username, get_result,
-                                                                  local_timezone=timezone)
-                    elif category == 'steps':
-                        # get and insert step counts
-                        get_result = backend.get_daily_steps(http_auth, yesterday_local.year, yesterday_local.month,
-                                                             yesterday_local.day,
-                                                             local_timezone=timezone)
-                        insert_result = backend.insert_steps(username, get_result, local_timezone=timezone)
-                        # upon success of getting API data and putting on Cloud Storage
-                    retry[username][category]['countdown'] = None
-                except client.HttpAccessTokenRefreshError as err:
-                    http_context.responseStatusCode = httplib.UNAUTHORIZED
-                    user_token_err = '{} has invalid refresh token'.format(username)
-                    error_reporting_client.report_exception(http_context=http_context,
-                                                            user=user_token_err)
-                    retry[username][category]['error'] = "{}: {}".format(user_token_err, err)
-                    # can't recover; abandon retry
-                    retry[username][category]['countdown'] = -2
-                except googleapiclient.errors.HttpError as err:
-                    http_context.responseStatusCode = err.resp.status
-                    error_reporting_client.report_exception(http_context=http_context,
-                                                            user='Google API HttpError for user {}'.format(username))
-                    retry[username][category]['error'] = str(err)
-                    if err.resp.status in (
-                    httplib.BAD_REQUEST, httplib.UNAUTHORIZED, httplib.NOT_FOUND, httplib.FORBIDDEN):
-                        # can't recover; abandon retry
-                        retry[username][category]['countdown'] = -2
-                except Exception as err:
-                    # https://googleapis.github.io/google-cloud-python/latest/error-reporting/usage.html
-                    error_reporting_client.report_exception(http_context=http_context,
-                                                            user='get and insert {} data for {} failed'.format(category,
-                                                                                                               username))
-                    retry[username][category]['error'] = str(err)
-
-                # if retry for user on category isn't None, recoverable failure happened, decrement the retry count
-                if retry[username][category]['countdown'] is not None:
-                    retry[username][category]['countdown'] -= 1
-                else:
-                    blob_get_result = bucket.blob(gs_path_get)
-                    blob_get_result.upload_from_string(str(get_result))
-                    retry[username][category]['gs://'].append("{}/{}".format(bucket_name, gs_path_get))
-                    blob_insert_result = bucket.blob(gs_path_insert)
-                    blob_insert_result.upload_from_string(str(insert_result))
-                    retry[username][category]['gs://'].append("{}/{}".format(bucket_name, gs_path_insert))
-                    # exiting while retry[username][category]['countdown'] >= 0 because None >= 0 is False
+    for t in threads:
+        t.join()
 
     is_error = False
     response.content_type = 'application/json'
     for username, category in retry.iteritems():
         for cat, cat_result in category.iteritems():
-            if cat_result['countdown']:
+            if 'error' in cat_result:
                 is_error = True
                 break
     if is_error:
         return HTTPResponse(retry, httplib.INTERNAL_SERVER_ERROR)
     else:
         return retry
+
+
+def insert_daily_fitness_data_thread(bucket_name, retry, username):
+    error_reporting_client = error_reporting.Client()
+    http_context = error_reporting.HTTPContext(method='GET', url='/v1/insert_daily_fitness',
+                                               user_agent='cron job for user {}'.format(username))
+    storage_client = storage.Client()
+    bucket = storage_client.get_bucket(bucket_name)
+    http_auth, timezone = get_google_http_auth_n_user_timezone(username)
+    # get today's local date - 1 day
+    yesterday_local = datetime.now(pytz.timezone(timezone)) - timedelta(days=1)
+    yesterday_local_str = yesterday_local.strftime(backend.DATE_FORMAT)
+    df = backend.UserDataFlow(username, http_auth, yesterday_local.year,
+                              yesterday_local.month,
+                              yesterday_local.day, backend.current_milli_time(), timezone)
+    retry[username] = {}
+    categories = {'heartrate', 'activities', 'steps'}
+    for category in categories:
+        retry[username][category] = {}
+        # countdown is the number of retries
+        retry[username][category]['countdown'] = 1
+        gs_path_get = '{}/{}/{}.json'.format(username, yesterday_local_str, category)
+        gs_path_insert = '{}/{}/{}_inserted_count.json'.format(username, yesterday_local_str, category)
+        get_result = None
+        insert_result = None
+
+        # start of the retry logic
+        while retry[username][category]['countdown'] >= 0:
+            try:
+                if category == 'heartrate':
+                    # get and insert heart rate data
+                    insert_result = df.get_and_post_heart_rate()
+                    get_result = insert_result['heart_datasets']
+                elif category == 'activities':
+                    # get and insert activities data
+                    get_result = df.get_activities()
+                    insert_result = df.post_activities()
+                elif category == 'steps':
+                    # get and insert step counts
+                    get_result = df.get_steps()
+                    insert_result = df.post_steps()
+                # set to None upon success of getting API data and inserting to BigQuery
+                retry[username][category]['countdown'] = None
+            except client.HttpAccessTokenRefreshError as err:
+                http_context.responseStatusCode = httplib.UNAUTHORIZED
+                user_token_err = '{} has invalid refresh token'.format(username)
+                error_reporting_client.report_exception(http_context=http_context,
+                                                        user=user_token_err)
+                retry[username][category]['error'] = "{}: {}".format(user_token_err, err)
+                # can't recover; abandon retry
+                retry[username][category]['countdown'] = -2
+            except googleapiclient.errors.HttpError as err:
+                http_context.responseStatusCode = err.resp.status
+                error_reporting_client.report_exception(http_context=http_context,
+                                                        user='Google API HttpError for user {}'.format(username))
+                retry[username][category]['error'] = str(err)
+                if err.resp.status in (
+                        httplib.BAD_REQUEST, httplib.UNAUTHORIZED, httplib.NOT_FOUND, httplib.FORBIDDEN):
+                    # can't recover; abandon retry
+                    retry[username][category]['countdown'] = -2
+            except Exception as err:
+                # https://googleapis.github.io/google-cloud-python/latest/error-reporting/usage.html
+                error_reporting_client.report_exception(http_context=http_context,
+                                                        user='get and insert {} data for {} failed'.format(category,
+                                                                                                           username))
+                retry[username][category]['error'] = str(err)
+
+            # if retry for user on category isn't None, recoverable failure happened, decrement the retry count
+            if retry[username][category]['countdown'] is not None:
+                retry[username][category]['countdown'] -= 1
+            else:
+                # exiting while loop because None >= 0 is False
+                pass
+
+        # per category, putting the get, insert results on Cloud Storage upon success
+        if retry[username][category]['countdown'] is None:
+            retry[username][category]['gs://'] = []
+            blob_get_result = bucket.blob(gs_path_get)
+            blob_get_result.upload_from_string(json.dumps(get_result))
+            retry[username][category]['gs://'].append("{}/{}".format(bucket_name, gs_path_get))
+            blob_insert_result = bucket.blob(gs_path_insert)
+            blob_insert_result.upload_from_string(json.dumps(insert_result))
+            retry[username][category]['gs://'].append("{}/{}".format(bucket_name, gs_path_insert))
+
+        retry[username][category].pop('countdown')
 
 
 port = int(os.environ.get('PORT', 8080))
