@@ -1,6 +1,6 @@
 runtime: python
 env: flex
-entrypoint: gunicorn -b :$PORT main:app
+entrypoint: gunicorn --timeout 3600 -b :$PORT main:app
 
 runtime_config:
   python_version: 2
@@ -9,7 +9,8 @@ service: dev
 #service: default
 
 env_variables:
-  CLIENT_SECRET: 'client_secret.apps.googleusercontent.com.json'
+  CLIENT_SECRET: 'secrets_do_not_git_push/client_secret.apps.googleusercontent.com.json'
+  APP_CONFIG: 'app_secret.config'
 
 beta_settings:
   cloud_sql_instances: [Instance connection name]

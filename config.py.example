@@ -1,9 +1,0 @@
-dbhost="YOUR_DB_HOST"
-dbuser="YOUR_DB_USER"
-dbpass="YOUR_DB_PASSWORD"
-dbname="YOUR_DB_NAME"
-dbport=3306
-API_KEY="secret"
-project = 'Your Google Cloud Project ID'
-dataset = 'Google Cloud BigQuery dataset name'
-table = 'Google Cloud BigQuery table name for heart rate' # schema: username:STRING,recordedTimeNanos:INTEGER,recordedLocalDate:DATE,bpm:INTEGER
