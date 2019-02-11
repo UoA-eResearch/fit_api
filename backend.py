@@ -30,6 +30,8 @@ config = ConfigParser()
 config.read(APP_CONFIG_FILENAME)
 API_key = config.get('app_config', 'API_KEY')
 DEFAULT_TIMEZONE = config.get('app_config', 'default_timezone')
+DEFAULT_BUCKET = config.get('app_config', 'bucket_name')
+DATASTORE_KIND = config.get('app_config', 'datastore_kind')
 GCP_project = config.get('app_config', 'project')
 GCP_dataset = config.get('bigquery_config', 'dataset')
 GCP_table_heartrate = config.get('bigquery_config', 'table_heartrate')
@@ -42,8 +44,7 @@ def current_milli_time():
     return int(round(time.time() * 1000))
 
 
-def get_daily_steps(http_auth, start_year, start_month, start_day, end_time_millis=current_milli_time(),
-                    local_timezone=DEFAULT_TIMEZONE):
+def get_daily_steps(http_auth, start_year, start_month, start_day, end_time_millis, local_timezone=DEFAULT_TIMEZONE):
     """
     Get user's daily step related data
     :param http_auth: username authenticated HTTP client to call Google API
@@ -76,7 +77,7 @@ def get_daily_steps(http_auth, start_year, start_month, start_day, end_time_mill
     return steps
 
 
-def get_daily_activities(http_auth, start_year, start_month, start_day, end_time_millis=current_milli_time(),
+def get_daily_activities(http_auth, start_year, start_month, start_day, end_time_millis,
                          local_timezone=DEFAULT_TIMEZONE):
     """
     get user's activities from Google fitness API
@@ -151,10 +152,11 @@ def calc_n_days_ago(past_n_days, local_timezone=pytz.timezone(DEFAULT_TIMEZONE))
     return int(n_days_ago_local_0_hour_millis)
 
 
-def get_and_insert_heart_rate(http_auth, username, start_year, start_month, start_day,
-                              end_time_millis=current_milli_time(), local_timezone=DEFAULT_TIMEZONE):
+def get_and_insert_heart_rate(http_auth, username, start_year, start_month, start_day, end_time_millis,
+                              local_timezone=DEFAULT_TIMEZONE):
     """
-    insert heart rate bmp rows except existing_rows of recordedTimeNanos
+    call Google Fitness API for user's heart rate bmp numbers and
+    insert them to a BigQuery table except existing_rows of recordedTimeNanos
     :param http_auth: username authenticated HTTP client to call Google API
     :param username: user's Gmail
     :param start_year: start getting heart rate data from local date's year
@@ -347,32 +349,32 @@ class UserDataFlow:
         self.end_time_millis = end_time_millis
         self.local_timezone = local_timezone
 
-        def get_steps(self):
-            self.steps = get_daily_steps(self.http_auth, self.start_year, self.start_month, self.start_day,
-                                         self.end_time_millis, self.local_timezone)
-            return self.steps
+    def get_steps(self):
+        self.steps = get_daily_steps(self.http_auth, self.start_year, self.start_month, self.start_day,
+                                     self.end_time_millis, self.local_timezone)
+        return self.steps
 
-        def post_steps(self):
-            if self.steps is not None:
-                self.insert_steps_result = insert_steps(self.username, self.steps, self.local_timezone)
-                return self.insert_steps_result
-            else:
-                raise RuntimeError('no .steps to insert to BigQuery')
+    def post_steps(self):
+        if self.steps is not None:
+            self.insert_steps_result = insert_steps(self.username, self.steps, self.local_timezone)
+            return self.insert_steps_result
+        else:
+            raise RuntimeError('no .steps to insert to BigQuery')
 
-        def get_and_post_heart_rate(self):
-            self.insert_heart_rate_result = get_and_insert_heart_rate(self.http_auth, self.username, self.start_year,
-                                                                      self.start_month, self.start_day,
-                                                                      self.end_time_millis, self.local_timezone)
-            return self.insert_heart_rate_result
+    def get_and_post_heart_rate(self):
+        self.insert_heart_rate_result = get_and_insert_heart_rate(self.http_auth, self.username, self.start_year,
+                                                                  self.start_month, self.start_day,
+                                                                  self.end_time_millis, self.local_timezone)
+        return self.insert_heart_rate_result
 
-        def get_activities(self):
-            self.activities = get_daily_activities(self.http_auth, self.start_year, self.start_month, self.start_day,
-                                                   self.end_time_millis, self.local_timezone)
-            return self.activities
+    def get_activities(self):
+        self.activities = get_daily_activities(self.http_auth, self.start_year, self.start_month, self.start_day,
+                                               self.end_time_millis, self.local_timezone)
+        return self.activities
 
-        def post_activities(self):
-            if self.activities is not None:
-                self.insert_activities_result = insert_activities(self.username, self.activities, self.local_timezone)
-                return self.insert_activities_result
-            else:
-                raise RuntimeError('no .activities to insert to BigQuery')
+    def post_activities(self):
+        if self.activities is not None:
+            self.insert_activities_result = insert_activities(self.username, self.activities, self.local_timezone)
+            return self.insert_activities_result
+        else:
+            raise RuntimeError('no .activities to insert to BigQuery')
