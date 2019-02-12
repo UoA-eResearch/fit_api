@@ -6,417 +6,605 @@
 	},
 	"item": [
 		{
-			"name": "heart rate",
-			"request": {
-				"method": "POST",
-				"header": [
-					{
-						"key": "apikey",
-						"value": "{{apikey}}",
-						"type": "text"
-					},
-					{
-						"key": "start_year",
-						"value": "2019",
-						"type": "text"
-					},
-					{
-						"key": "start_month",
-						"value": "2",
-						"type": "text"
-					},
-					{
-						"key": "start_day",
-						"value": "7",
-						"type": "text"
-					},
-					{
-						"key": "end_time_millis",
-						"value": "1549605600000",
-						"type": "text"
-					}
-				],
-				"body": {
-					"mode": "formdata",
-					"formdata": [
-						{
-							"key": "apikey",
-							"value": "secret",
-							"type": "text",
-							"disabled": true
+			"name": "MySQL dependent",
+			"item": [
+				{
+					"name": "get sum of activity minutes",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "apikey",
+								"value": "{{apikey}}",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "start_year",
+								"value": "2019",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "start_month",
+								"value": "2",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "start_day",
+								"value": "5",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "end_time_millis",
+								"value": "1548489599000",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
 						},
-						{
-							"key": "start_year",
-							"value": "2019",
-							"type": "text",
-							"disabled": true
+						"url": {
+							"raw": "{{host_url}}/activity_for_user/{{hil_gmail}}?key=secret",
+							"host": [
+								"{{host_url}}"
+							],
+							"path": [
+								"activity_for_user",
+								"{{hil_gmail}}"
+							],
+							"query": [
+								{
+									"key": "key",
+									"value": "secret"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get all users",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "apikey",
+								"value": "{{apikey}}",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "start_year",
+								"value": "2019",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "start_month",
+								"value": "2",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "start_day",
+								"value": "5",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "end_time_millis",
+								"value": "1548489599000",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
 						},
-						{
-							"key": "start_month",
-							"value": "1",
-							"type": "text",
-							"disabled": true
+						"url": {
+							"raw": "{{host_url}}/users?key=secret",
+							"host": [
+								"{{host_url}}"
+							],
+							"path": [
+								"users"
+							],
+							"query": [
+								{
+									"key": "key",
+									"value": "secret"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "last day steps",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "apikey",
+								"value": "{{apikey}}",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "start_year",
+								"value": "2019",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "start_month",
+								"value": "2",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "start_day",
+								"value": "5",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "end_time_millis",
+								"value": "1548489599000",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
 						},
-						{
-							"key": "start_day",
-							"value": "24",
-							"type": "text",
-							"disabled": true
+						"url": {
+							"raw": "{{host_url}}/steps_for_user/last_day/{{hil_gmail}}?key=secret",
+							"host": [
+								"{{host_url}}"
+							],
+							"path": [
+								"steps_for_user",
+								"last_day",
+								"{{hil_gmail}}"
+							],
+							"query": [
+								{
+									"key": "key",
+									"value": "secret"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "step leaderboard",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "apikey",
+								"value": "{{apikey}}",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "start_year",
+								"value": "2019",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "start_month",
+								"value": "2",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "start_day",
+								"value": "5",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "end_time_millis",
+								"value": "1548489599000",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
 						},
-						{
-							"key": "end_time_millis",
-							"value": "1548468932000",
-							"type": "text",
-							"disabled": true
+						"url": {
+							"raw": "{{host_url}}/step_leaderboard?key=secret",
+							"host": [
+								"{{host_url}}"
+							],
+							"path": [
+								"step_leaderboard"
+							],
+							"query": [
+								{
+									"key": "key",
+									"value": "secret"
+								}
+							]
 						}
-					]
-				},
-				"url": {
-					"raw": "{{host_url}}/v1/users/{{hil_gmail}}/heart",
-					"host": [
-						"{{host_url}}"
-					],
-					"path": [
-						"v1",
-						"users",
-						"{{hil_gmail}}",
-						"heart"
-					]
-				},
-				"description": "call Google Fitness API for user's heart rate bmp numbers and \n    insert them to a BigQuery table except existing_rows of recordedTimeNanos"
-			},
-			"response": []
-		},
-		{
-			"name": "get steps",
-			"protocolProfileBehavior": {
-				"disableBodyPruning": true
-			},
-			"request": {
-				"method": "GET",
-				"header": [
-					{
-						"key": "apikey",
-						"value": "{{apikey}}",
-						"type": "text"
 					},
-					{
-						"key": "start_year",
-						"value": "2019",
-						"type": "text"
-					},
-					{
-						"key": "start_month",
-						"value": "2",
-						"type": "text"
-					},
-					{
-						"key": "start_day",
-						"value": "7",
-						"type": "text"
-					},
-					{
-						"key": "end_time_millis",
-						"value": "1549907482000",
-						"type": "text",
-						"disabled": true
-					}
-				],
-				"body": {
-					"mode": "formdata",
-					"formdata": [
-						{
-							"key": "apikey",
-							"value": "secret",
-							"type": "text",
-							"disabled": true
-						}
-					]
-				},
-				"url": {
-					"raw": "{{host_url}}/v1/users/{{jared_email}}/steps",
-					"host": [
-						"{{host_url}}"
-					],
-					"path": [
-						"v1",
-						"users",
-						"{{jared_email}}",
-						"steps"
-					]
-				},
-				"description": "call Google fitness API to get user's steps"
-			},
-			"response": []
-		},
-		{
-			"name": "activities fitness API->BigQuery",
-			"request": {
-				"method": "POST",
-				"header": [
-					{
-						"key": "apikey",
-						"value": "{{apikey}}",
-						"type": "text"
-					},
-					{
-						"key": "start_year",
-						"value": "2019",
-						"type": "text"
-					},
-					{
-						"key": "start_month",
-						"value": "1",
-						"type": "text"
-					},
-					{
-						"key": "start_day",
-						"value": "19",
-						"type": "text"
-					},
-					{
-						"key": "end_time_millis",
-						"value": "1547971200000",
-						"type": "text"
-					}
-				],
-				"body": {
-					"mode": "formdata",
-					"formdata": [
-						{
-							"key": "",
-							"value": "secret",
-							"type": "text",
-							"disabled": true
-						}
-					]
-				},
-				"url": {
-					"raw": "{{host_url}}/v1/users/{{hil_gmail}}/activities",
-					"host": [
-						"{{host_url}}"
-					],
-					"path": [
-						"v1",
-						"users",
-						"{{hil_gmail}}",
-						"activities"
-					]
-				},
-				"description": "call Google Fitness API for user's activities and insert them to a BigQuery table except local datetime today's activities.\nReason: updating or delete today's activities will cause streaming buffer error in BigQuery"
-			},
-			"response": []
-		},
-		{
-			"name": "activities from fitness API",
-			"request": {
-				"method": "GET",
-				"header": [
-					{
-						"key": "apikey",
-						"value": "{{apikey}}",
-						"type": "text"
-					},
-					{
-						"key": "start_year",
-						"value": "2019",
-						"type": "text"
-					},
-					{
-						"key": "start_month",
-						"value": "2",
-						"type": "text"
-					},
-					{
-						"key": "start_day",
-						"value": "7",
-						"type": "text"
-					},
-					{
-						"key": "end_time_millis",
-						"value": "1548489599000",
-						"type": "text",
-						"disabled": true
-					}
-				],
-				"body": {
-					"mode": "raw",
-					"raw": ""
-				},
-				"url": {
-					"raw": "{{host_url}}/v1/users/{{hil_gmail}}/activities",
-					"host": [
-						"{{host_url}}"
-					],
-					"path": [
-						"v1",
-						"users",
-						"{{hil_gmail}}",
-						"activities"
-					]
-				},
-				"description": "call Google fitness API to get user's activities"
-			},
-			"response": []
-		},
-		{
-			"name": "insert steps",
-			"request": {
-				"method": "POST",
-				"header": [
-					{
-						"key": "apikey",
-						"value": "secret",
-						"type": "text"
-					},
-					{
-						"key": "start_year",
-						"value": "2019",
-						"type": "text"
-					},
-					{
-						"key": "start_month",
-						"value": "2",
-						"type": "text"
-					},
-					{
-						"key": "start_day",
-						"value": "4",
-						"type": "text"
-					},
-					{
-						"key": "end_time_millis",
-						"value": "1547971200000",
-						"type": "text",
-						"disabled": true
-					}
-				],
-				"body": {
-					"mode": "formdata",
-					"formdata": [
-						{
-							"key": "apikey",
-							"value": "secret",
-							"type": "text",
-							"disabled": true
-						}
-					]
-				},
-				"url": {
-					"raw": "{{host_url}}/v1/users/{{hil_gmail}}/steps",
-					"host": [
-						"{{host_url}}"
-					],
-					"path": [
-						"v1",
-						"users",
-						"{{hil_gmail}}",
-						"steps"
-					]
-				},
-				"description": "call Google fitness API to get user's steps and insert step counts to BigQuery except local datetime today's steps.\nReason: updating or delete today's steps will cause streaming buffer error in BigQuery"
-			},
-			"response": []
-		},
-		{
-			"name": "Cron job endpoint",
-			"request": {
-				"method": "POST",
-				"header": [
-					{
-						"key": "X-Appengine-Cron",
-						"value": "true",
-						"type": "text"
-					},
-					{
-						"key": "end_time_millis",
-						"value": "1548489599000",
-						"type": "text",
-						"disabled": true
-					}
-				],
-				"body": {
-					"mode": "raw",
-					"raw": ""
-				},
-				"url": {
-					"raw": "{{host_url}}/v1/insert_daily_fitness?{{test_users}}",
-					"host": [
-						"{{host_url}}"
-					],
-					"path": [
-						"v1",
-						"insert_daily_fitness"
-					],
-					"query": [
-						{
-							"key": "{{test_users}}",
-							"value": null
-						}
-					]
-				},
-				"description": "Call the on demand endpoint to similate cron job runninng. Cron job does not need query string. The query string of users is for debugging."
-			},
-			"response": []
-		},
-		{
-			"name": "get user's single activity from MySQL",
-			"request": {
-				"method": "GET",
-				"header": [
-					{
-						"key": "apikey",
-						"value": "{{apikey}}",
-						"type": "text",
-						"disabled": true
-					},
-					{
-						"key": "start_year",
-						"value": "2019",
-						"type": "text",
-						"disabled": true
-					},
-					{
-						"key": "start_month",
-						"value": "2",
-						"type": "text",
-						"disabled": true
-					},
-					{
-						"key": "start_day",
-						"value": "5",
-						"type": "text",
-						"disabled": true
-					},
-					{
-						"key": "end_time_millis",
-						"value": "1548489599000",
-						"type": "text",
-						"disabled": true
-					}
-				],
-				"body": {
-					"mode": "raw",
-					"raw": ""
-				},
-				"url": {
-					"raw": "{{host_url}}/activity_for_user_details/{{hil_gmail}}?key=secret",
-					"host": [
-						"{{host_url}}"
-					],
-					"path": [
-						"activity_for_user_details",
-						"{{hil_gmail}}"
-					],
-					"query": [
-						{
-							"key": "key",
-							"value": "secret"
-						}
-					]
+					"response": []
 				}
-			},
-			"response": []
+			],
+			"description": "prior Github project's HTTP rest methods which depend on MySQL"
+		},
+		{
+			"name": "Google Cloud BigQuery dependent",
+			"item": [
+				{
+					"name": "heart rate",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "apikey",
+								"value": "{{apikey}}",
+								"type": "text"
+							},
+							{
+								"key": "start_year",
+								"value": "2019",
+								"type": "text"
+							},
+							{
+								"key": "start_month",
+								"value": "2",
+								"type": "text"
+							},
+							{
+								"key": "start_day",
+								"value": "7",
+								"type": "text"
+							},
+							{
+								"key": "end_time_millis",
+								"value": "1549605600000",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "apikey",
+									"value": "secret",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "start_year",
+									"value": "2019",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "start_month",
+									"value": "1",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "start_day",
+									"value": "24",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "end_time_millis",
+									"value": "1548468932000",
+									"type": "text",
+									"disabled": true
+								}
+							]
+						},
+						"url": {
+							"raw": "{{host_url}}/v1/users/{{hil_gmail}}/heart",
+							"host": [
+								"{{host_url}}"
+							],
+							"path": [
+								"v1",
+								"users",
+								"{{hil_gmail}}",
+								"heart"
+							]
+						},
+						"description": "call Google Fitness API for user's heart rate bmp numbers and \n    insert them to a BigQuery table except existing_rows of recordedTimeNanos"
+					},
+					"response": []
+				},
+				{
+					"name": "get steps",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "apikey",
+								"value": "{{apikey}}",
+								"type": "text"
+							},
+							{
+								"key": "start_year",
+								"value": "2019",
+								"type": "text"
+							},
+							{
+								"key": "start_month",
+								"value": "2",
+								"type": "text"
+							},
+							{
+								"key": "start_day",
+								"value": "7",
+								"type": "text"
+							},
+							{
+								"key": "end_time_millis",
+								"value": "1549907482000",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "apikey",
+									"value": "secret",
+									"type": "text",
+									"disabled": true
+								}
+							]
+						},
+						"url": {
+							"raw": "{{host_url}}/v1/users/{{hil_gmail}}/steps",
+							"host": [
+								"{{host_url}}"
+							],
+							"path": [
+								"v1",
+								"users",
+								"{{hil_gmail}}",
+								"steps"
+							]
+						},
+						"description": "call Google fitness API to get user's steps"
+					},
+					"response": []
+				},
+				{
+					"name": "activities fitness API->BigQuery",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "apikey",
+								"value": "{{apikey}}",
+								"type": "text"
+							},
+							{
+								"key": "start_year",
+								"value": "2019",
+								"type": "text"
+							},
+							{
+								"key": "start_month",
+								"value": "1",
+								"type": "text"
+							},
+							{
+								"key": "start_day",
+								"value": "19",
+								"type": "text"
+							},
+							{
+								"key": "end_time_millis",
+								"value": "1547971200000",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "",
+									"value": "secret",
+									"type": "text",
+									"disabled": true
+								}
+							]
+						},
+						"url": {
+							"raw": "{{host_url}}/v1/users/{{hil_gmail}}/activities",
+							"host": [
+								"{{host_url}}"
+							],
+							"path": [
+								"v1",
+								"users",
+								"{{hil_gmail}}",
+								"activities"
+							]
+						},
+						"description": "call Google Fitness API for user's activities and insert them to a BigQuery table except local datetime today's activities.\nReason: updating or delete today's activities will cause streaming buffer error in BigQuery"
+					},
+					"response": []
+				},
+				{
+					"name": "activities from fitness API",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "apikey",
+								"value": "{{apikey}}",
+								"type": "text"
+							},
+							{
+								"key": "start_year",
+								"value": "2019",
+								"type": "text"
+							},
+							{
+								"key": "start_month",
+								"value": "2",
+								"type": "text"
+							},
+							{
+								"key": "start_day",
+								"value": "7",
+								"type": "text"
+							},
+							{
+								"key": "end_time_millis",
+								"value": "1548489599000",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{host_url}}/v1/users/{{hil_gmail}}/activities",
+							"host": [
+								"{{host_url}}"
+							],
+							"path": [
+								"v1",
+								"users",
+								"{{hil_gmail}}",
+								"activities"
+							]
+						},
+						"description": "call Google fitness API to get user's activities"
+					},
+					"response": []
+				},
+				{
+					"name": "insert steps",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "apikey",
+								"value": "secret",
+								"type": "text"
+							},
+							{
+								"key": "start_year",
+								"value": "2019",
+								"type": "text"
+							},
+							{
+								"key": "start_month",
+								"value": "2",
+								"type": "text"
+							},
+							{
+								"key": "start_day",
+								"value": "4",
+								"type": "text"
+							},
+							{
+								"key": "end_time_millis",
+								"value": "1547971200000",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "apikey",
+									"value": "secret",
+									"type": "text",
+									"disabled": true
+								}
+							]
+						},
+						"url": {
+							"raw": "{{host_url}}/v1/users/{{hil_gmail}}/steps",
+							"host": [
+								"{{host_url}}"
+							],
+							"path": [
+								"v1",
+								"users",
+								"{{hil_gmail}}",
+								"steps"
+							]
+						},
+						"description": "call Google fitness API to get user's steps and insert step counts to BigQuery except local datetime today's steps.\nReason: updating or delete today's steps will cause streaming buffer error in BigQuery"
+					},
+					"response": []
+				},
+				{
+					"name": "Cron job endpoint",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-Appengine-Cron",
+								"value": "true",
+								"type": "text"
+							},
+							{
+								"key": "end_time_millis",
+								"value": "1548489599000",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{host_url}}/v1/insert_daily_fitness?{{test_users}}",
+							"host": [
+								"{{host_url}}"
+							],
+							"path": [
+								"v1",
+								"insert_daily_fitness"
+							],
+							"query": [
+								{
+									"key": "{{test_users}}",
+									"value": null
+								}
+							]
+						},
+						"description": "Call the on demand endpoint to similate cron job runninng. Cron job does not need query string. The query string of users is for debugging."
+					},
+					"response": []
+				}
+			],
+			"description": "new /v1 methods that depend on Google Cloud BigQuery"
 		}
 	]
 }

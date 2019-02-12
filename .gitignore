@@ -102,3 +102,12 @@ ENV/
 
 client_secret.json
 config.py
+
+#VS Code
+/.vscode
+
+#secrets
+/.secrets
+
+#dev config
+app_secret.config
