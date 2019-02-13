@@ -602,6 +602,187 @@
 						"description": "Call the on demand endpoint to similate cron job runninng. Cron job does not need query string. The query string of users is for debugging."
 					},
 					"response": []
+				},
+				{
+					"name": "list all datasources",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "apikey",
+								"value": "{{apikey}}",
+								"type": "text"
+							},
+							{
+								"key": "start_year",
+								"value": "2019",
+								"type": "text"
+							},
+							{
+								"key": "start_month",
+								"value": "2",
+								"type": "text"
+							},
+							{
+								"key": "start_day",
+								"value": "7",
+								"type": "text"
+							},
+							{
+								"key": "end_time_millis",
+								"value": "1549907482000",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "apikey",
+									"value": "secret",
+									"type": "text",
+									"disabled": true
+								}
+							]
+						},
+						"url": {
+							"raw": "{{host_url}}/v1/users/{{hil_gmail}}/datasources",
+							"host": [
+								"{{host_url}}"
+							],
+							"path": [
+								"v1",
+								"users",
+								"{{hil_gmail}}",
+								"datasources"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get daily calories",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "apikey",
+								"value": "{{apikey}}",
+								"type": "text"
+							},
+							{
+								"key": "start_year",
+								"value": "2019",
+								"type": "text"
+							},
+							{
+								"key": "start_month",
+								"value": "2",
+								"type": "text"
+							},
+							{
+								"key": "start_day",
+								"value": "7",
+								"type": "text"
+							},
+							{
+								"key": "end_time_millis",
+								"value": "1549907482000",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "apikey",
+									"value": "secret",
+									"type": "text",
+									"disabled": true
+								}
+							]
+						},
+						"url": {
+							"raw": "{{host_url}}/v1/users/{{hil_gmail}}/calories",
+							"host": [
+								"{{host_url}}"
+							],
+							"path": [
+								"v1",
+								"users",
+								"{{hil_gmail}}",
+								"calories"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "insert calories",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "apikey",
+								"type": "text",
+								"value": "{{apikey}}"
+							},
+							{
+								"key": "start_year",
+								"type": "text",
+								"value": "2019"
+							},
+							{
+								"key": "start_month",
+								"type": "text",
+								"value": "2"
+							},
+							{
+								"key": "start_day",
+								"type": "text",
+								"value": "7"
+							},
+							{
+								"key": "end_time_millis",
+								"type": "text",
+								"value": "1549907482000",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "apikey",
+									"value": "secret",
+									"type": "text",
+									"disabled": true
+								}
+							]
+						},
+						"url": {
+							"raw": "{{host_url}}/v1/users/{{hil_gmail}}/calories",
+							"host": [
+								"{{host_url}}"
+							],
+							"path": [
+								"v1",
+								"users",
+								"{{hil_gmail}}",
+								"calories"
+							]
+						},
+						"description": "call Google fitness API to get daily calories and insert the number of float to Google BigQuery table"
+					},
+					"response": []
 				}
 			],
 			"description": "new /v1 methods that depend on Google Cloud BigQuery"

@@ -1,7 +1,7 @@
 runtime: python
 env: flex
 # --threads 48 fails with ERROR: (gcloud.app.deploy) Error Response: [13] An internal error occurred during deployment. You may need to delete this version manually.
-entrypoint: gunicorn --timeout 3600 --workers 8 --threads 10 -b :$PORT fit:app
+entrypoint: gunicorn --timeout 3600 --workers 8 --threads 24 -b :$PORT fit:app
 
 runtime_config:
   python_version: 2
