@@ -121,6 +121,55 @@ def get_steps(username):
             return HTTPError(err.resp.status, "Google API HttpError: " + str(err))
 
 
+@app.get('/v1/users/<username>/calories')
+def get_calories(username):
+    error = check_headers_apikey()
+    if error:
+        return error
+    http_auth, timezone = get_google_http_auth_n_user_timezone(username)
+    end_time_millis, start_date, error = extract_header_dates()
+
+    if error:
+        if isinstance(error, HTTPError):
+            return error
+        else:
+            return HTTPResponse({
+                'code': httplib.BAD_REQUEST,
+                'error': str(error)}, httplib.BAD_REQUEST)
+    else:
+        try:
+            # end_time_millis in headers data is optional
+            if end_time_millis is None:
+                end_time_millis = backend.current_milli_time()
+
+            calories = backend.get_daily_calories(http_auth, start_date['year'], start_date['month'], start_date['day'],
+                                                  end_time_millis, local_timezone=timezone)
+            response.content_type = 'application/json'
+            return calories
+        except client.HttpAccessTokenRefreshError as err:
+            return HTTPError(httplib.UNAUTHORIZED, "Refresh token invalid: " + str(err))
+        except googleapiclient.errors.HttpError as err:
+            return HTTPError(err.resp.status, "Google API HttpError: " + str(err))
+
+
+@app.post('/v1/users/<username>/calories')
+def insert_calories(username):
+    error = check_headers_apikey()
+    if error:
+        return error
+    calories = get_calories(username)
+    if isinstance(calories, HTTPError) or isinstance(calories, HTTPResponse):
+        return calories
+
+    insert_result = {
+        'inserted_count': backend.insert_calories(username, calories),
+        'calories': calories
+    }
+
+    response.content_type = 'application/json'
+    return insert_result
+
+
 @app.get('/v1')
 def main():
     return static_file("post.html", ".")
@@ -229,6 +278,23 @@ def extract_header_dates():
         start_date['day'] = int(start_date['day'])
 
     return end_time_millis, start_date, None
+
+
+@app.get('/v1/users/<username>/datasources')
+def list_all_datasources(username):
+    error = check_headers_apikey()
+    if error:
+        return error
+    http_auth, timezone = get_google_http_auth_n_user_timezone(username)
+
+    try:
+        datasources = backend.list_datasources(http_auth)
+    except client.HttpAccessTokenRefreshError as err:
+        return HTTPError(httplib.UNAUTHORIZED, "Refresh token invalid: " + str(err))
+    except googleapiclient.errors.HttpError as err:
+        return HTTPError(err.resp.status, "Google API HttpError: " + str(err))
+
+    return json.dumps(datasources)
 
 
 @app.post('/v1/users/<username>/heart')
@@ -365,7 +431,7 @@ def insert_daily_fitness_data_thread(bucket_name, retry, username):
                               yesterday_local.month,
                               yesterday_local.day, backend.current_milli_time(), timezone)
     retry[username] = {}
-    categories = {'heartrate', 'activities', 'steps'}
+    categories = {'heartrate', 'activities', 'steps', 'calories'}
     for category in categories:
         retry[username][category] = {}
         # countdown is the number of retries
@@ -390,6 +456,10 @@ def insert_daily_fitness_data_thread(bucket_name, retry, username):
                     # get and insert step counts
                     get_result = df.get_steps()
                     insert_result = df.post_steps()
+                elif category == 'calories':
+                    # get and insert calories
+                    get_result = df.get_calories()
+                    insert_result = df.post_calories()
                 # set to None upon success of getting API data and inserting to BigQuery
                 retry[username][category]['countdown'] = None
             except client.HttpAccessTokenRefreshError as err:

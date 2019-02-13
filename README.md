@@ -19,6 +19,7 @@ A web interface to gain consent from a user, to obtain their Google Fit data fro
 ### Create tables in Database and BigQuery
 
 `sudo mysql < structure.sql` to create the database and tables. Create the tables in Google Cloud BigQuery ->
+
 **activities table**
 
 |Field name|Type|Mode|
@@ -55,6 +56,25 @@ A web interface to gain consent from a user, to obtain their Google Fit data fro
 |recordedTimeNanos|INTEGER|REQUIRED|
 |recordedLocalDate|DATE|NULLABLE|
 |bpm|INTEGER|REQUIRED|
+
+**steps**
+
+|Field name|Type|Mode|
+|----------|----|----|
+|username|STRING|REQUIRED|
+|recordedLocalDate|DATE|REQUIRED|
+|steps|INTEGER|REQUIRED|
+|originDataSourceId|STRING|NULLABLE|
+
+**calories**
+
+|Field name|Type|Mode|
+|----------|----|----|
+|username|STRING|REQUIRED|
+|recordedLocalDate|DATE|REQUIRED|
+|calories|FLOAT|REQUIRED|
+|originDataSourceId|STRING|NULLABLE|
+
 
 insert acticity types into activity_types table by running the section of structure.sql:
 ```INSERT INTO `activity_types` (name, id) VALUES```.

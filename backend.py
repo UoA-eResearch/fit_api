@@ -12,6 +12,7 @@ from update_google_fit import get_aggregate
 DATE_FORMAT = '%Y-%m-%d'
 ONE_DAY_MS = 86400000
 STEPS_DATASOURCE = "derived:com.google.step_count.delta:com.google.android.gms:estimated_steps"
+CALORIES_DATASOURCE = 'derived:com.google.calories.expended:com.google.android.gms:merge_calories_expended'
 ACTIVITY_DATASOURCE = "derived:com.google.activity.segment:com.google.android.gms:merge_activity_segments"
 HEART_RATE_DATASOURCE = 'derived:com.google.heart_rate.bpm:com.google.android.gms:merge_heart_rate_bpm'
 epoch0 = datetime(1970, 1, 1, tzinfo=pytz.utc)
@@ -38,10 +39,49 @@ GCP_table_heartrate = config.get('bigquery_config', 'table_heartrate')
 GCP_table_activities = config.get('bigquery_config', 'table_activities')
 GCP_table_segments = config.get('bigquery_config', 'table_segments')
 GCP_table_steps = config.get('bigquery_config', 'table_steps')
+GCP_table_calories = config.get('bigquery_config', 'table_calories')
 
 
 def current_milli_time():
     return int(round(time.time() * 1000))
+
+
+def list_datasources(http_auth):
+    fit_service = build('fitness', 'v1', http=http_auth)
+    return fit_service.users().dataSources().list(userId="me").execute()
+
+
+def get_daily_calories(http_auth, start_year, start_month, start_day, end_time_millis, local_timezone=DEFAULT_TIMEZONE):
+    """
+    Get user's daily calory related data
+    :param http_auth: username authenticated HTTP client to call Google API
+    :param start_year: start getting calory data from local date's year
+    :param start_month: start getting calory data from local date's month
+    :param start_day: start getting calory data from local date's day
+    :param end_time_millis: getting calory data up to the end datetime in milliseconds Unix Epoch time
+    :param local_timezone: timezone such as US/Pacific, one of the pytz.all_timezones
+    :return: dict of daily calory and data source ID
+    """
+    # calculate the timestamp in local time to query Google fitness API
+    local_0_hour = pytz.timezone(local_timezone).localize(datetime(start_year, start_month, start_day))
+    start_time_millis = int((local_0_hour - epoch0).total_seconds() * 1000)
+    fit_service = build('fitness', 'v1', http=http_auth)
+    daily_calories = {}
+
+    calory_data = get_aggregate(fit_service, start_time_millis, end_time_millis, CALORIES_DATASOURCE)
+    for daily_calory_data in calory_data['bucket']:
+        # use local date as the key
+        local_date = datetime.fromtimestamp(int(daily_calory_data['startTimeMillis']) / 1000,
+                                            tz=pytz.timezone(local_timezone))
+        local_date_str = local_date.strftime(DATE_FORMAT)
+
+        data_point = daily_calory_data['dataset'][0]['point']
+        if data_point:
+            calories = data_point[0]['value'][0]['fpVal']
+            data_source_id = data_point[0]['originDataSourceId']
+            daily_calories[local_date_str] = {'calories': calories, 'originDataSourceId': data_source_id}
+
+    return daily_calories
 
 
 def get_daily_steps(http_auth, start_year, start_month, start_day, end_time_millis, local_timezone=DEFAULT_TIMEZONE):
@@ -257,14 +297,14 @@ def insert_steps(username, steps, local_timezone=DEFAULT_TIMEZONE):
     now_local = now_utc.astimezone(pytz.timezone(local_timezone))
 
     for localDate, value in steps.iteritems():
-        incoming_activity_date = datetime.strptime(localDate, DATE_FORMAT).date()
+        incoming_steps_date = datetime.strptime(localDate, DATE_FORMAT).date()
 
-        # Do not insert today's activities because error occurs updating or deleting them
-        if incoming_activity_date == now_local.date():
+        # Do not insert today's steps because error occurs updating or deleting them
+        if incoming_steps_date == now_local.date():
             continue
 
-        # if incoming step's date not found in the existing steps table, insert incoming step count
-        if incoming_activity_date not in existing_step_dates:
+        # if incoming step's date not found in the existing table, insert incoming step count
+        if incoming_steps_date not in existing_step_dates:
             rows_to_insert.append(
                 (username, localDate, value['steps'], value['originDataSourceId'])
             )
@@ -272,6 +312,50 @@ def insert_steps(username, steps, local_timezone=DEFAULT_TIMEZONE):
     if rows_to_insert:
         # BigQuery API request
         errors = bigquery_client.insert_rows(table_steps, rows_to_insert)
+        if errors:
+            raise Exception(str(errors))
+
+    return len(rows_to_insert)
+
+
+def insert_calories(username, calories, local_timezone=DEFAULT_TIMEZONE):
+    """
+    insert calories to BigQuery except local date of today's calories per local_timezone
+    :param username: user's Gmail
+    :param calories: dictionary of local date as key, value is another dict of calories, originDataSourceId
+    :param local_timezone: timezone such as US/Pacific, one of the pytz.all_timezones
+    :return: inserted row count
+    """
+    bigquery_client = bigquery.Client()
+    dataset_ref = bigquery_client.dataset(GCP_dataset)
+    table_calories_ref = dataset_ref.table(GCP_table_calories)
+    table_calories = bigquery_client.get_table(table_calories_ref)
+
+    # check existing rows by local date
+    query = "SELECT DISTINCT recordedLocalDate FROM `{}.{}.{}` WHERE username = '{}' ORDER BY recordedLocalDate DESC ".format(
+        GCP_project, GCP_dataset, GCP_table_calories, username)
+    query_job = bigquery_client.query(query)
+    existing_calories_dates = [row['recordedLocalDate'] for row in query_job.result()]
+    rows_to_insert = []
+    now_utc = datetime.now(pytz.timezone('UTC'))
+    now_local = now_utc.astimezone(pytz.timezone(local_timezone))
+
+    for localDate, value in calories.iteritems():
+        incoming_calories_date = datetime.strptime(localDate, DATE_FORMAT).date()
+
+        # Do not insert today's calories because error occurs updating or deleting them
+        if incoming_calories_date == now_local.date():
+            continue
+
+        # if incoming calory's date not found in the existing table, insert incoming calories
+        if incoming_calories_date not in existing_calories_dates:
+            rows_to_insert.append(
+                (username, localDate, value['calories'], value['originDataSourceId'])
+            )
+
+    if rows_to_insert:
+        # BigQuery API request
+        errors = bigquery_client.insert_rows(table_calories, rows_to_insert)
         if errors:
             raise Exception(str(errors))
 
@@ -359,7 +443,19 @@ class UserDataFlow:
             self.insert_steps_result = insert_steps(self.username, self.steps, self.local_timezone)
             return self.insert_steps_result
         else:
-            raise RuntimeError('no .steps to insert to BigQuery')
+            raise RuntimeError('no self.steps to insert to BigQuery')
+
+    def get_calories(self):
+        self.calories = get_daily_calories(self.http_auth, self.start_year, self.start_month, self.start_day,
+                                     self.end_time_millis, self.local_timezone)
+        return self.calories
+
+    def post_calories(self):
+        if self.calories is not None:
+            self.insert_calories_result = insert_calories(self.username, self.calories, self.local_timezone)
+            return self.insert_calories_result
+        else:
+            raise RuntimeError('no self.calories to insert to BigQuery')
 
     def get_and_post_heart_rate(self):
         self.insert_heart_rate_result = get_and_insert_heart_rate(self.http_auth, self.username, self.start_year,
@@ -377,4 +473,4 @@ class UserDataFlow:
             self.insert_activities_result = insert_activities(self.username, self.activities, self.local_timezone)
             return self.insert_activities_result
         else:
-            raise RuntimeError('no .activities to insert to BigQuery')
+            raise RuntimeError('no self.activities to insert to BigQuery')
